@@ -4,7 +4,6 @@
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://python.org)
-[![PyPI](https://img.shields.io/pypi/v/ditaflow-core)](https://pypi.org/project/ditaflow-core/)
 
 DitaFlow Core provides:
 
@@ -39,6 +38,17 @@ DitaFlow is a lossless JSON encoding of the DITA Information Model. Every valid 
 ```
 
 ## Installation
+
+Not yet published to PyPI (still pre-release — the `release` CI job publishes
+on `v*` tags, which haven't been cut yet). Install from source for now:
+
+```bash
+git clone https://github.com/ditaflow/ditaflow-core.git
+cd ditaflow-core
+pip install -e .
+```
+
+Once a `v*` tag is released, this will become:
 
 ```bash
 pip install ditaflow-core
