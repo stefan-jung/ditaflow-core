@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<reference id="api-operations">
+  <title>API operations</title>
+  <refbody>
+    <apiOperation class="+ topic/section reference/section apiRef-d/apiOperation " id="create-user" api-type="rest">
+      <title>Create user</title>
+      <p>Creates a new user record.</p>
+    </apiOperation>
+  </refbody>
+</reference>

@@ -199,7 +199,11 @@ export interface DtfAttrs {
   hazard?: string;
 
   /**
-   * Extension bucket: any attribute not recognised above is stored here.
+   * Extension bucket: any attribute not given its own typed field above is
+   * stored here — including standard DITA attributes that simply haven't
+   * been individually modeled (e.g. domains, spectitle, keycol), not just
+   * attributes unknown to DITA. This is the primary mechanism by which DTF
+   * achieves full DITA attribute coverage without enumerating every domain.
    * Preserved verbatim for lossless round-trip.
    * Key: attribute name (including namespace prefix if present)
    * Value: attribute value as string
@@ -251,9 +255,15 @@ export interface DtfComment {
 
 /**
  * Marks apply to DtfTextNode spans.
- * Only structural formatting with no semantic children is modelled as a Mark.
- * Semantic inline elements (xref, keyword, ph, cite, term, etc.) are
- * DtfElementNodes with their own content array.
+ *
+ * Collapsing rule: an element is only represented as a Mark if its entire
+ * content is text (optionally carrying other marks) with no element
+ * children — e.g. <b>important</b>. If such an element contains a child
+ * element instead (e.g. <b><xref href="..."/></b>), a Mark cannot represent
+ * it (marks cannot nest or carry non-text content), so it stays a
+ * DtfElementNode with its own content array. This is also why all other
+ * semantic inline elements (xref, keyword, ph, cite, term, fn) are always
+ * DtfElementNodes, never Marks — they are routinely nested.
  */
 export type DtfMark =
   | { type: "b" }                         // <b>
@@ -463,6 +473,13 @@ export interface DtfStentry {
 export interface DtfTopicNode extends DtfBaseNode {
   type: string;   // "topic" | "concept" | "task" | "reference" | specialisation
   baseType: "topic";
+
+  /**
+   * Topic title. Mandatory: every DITA topic requires a <title> as its
+   * first child (unlike a map's title, which DITA treats as optional —
+   * see DtfMapNode.title).
+   */
+  title: DtfElementNode;
 
   /** Topic short description */
   shortdesc?: DtfElementNode;

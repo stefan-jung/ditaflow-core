@@ -2,31 +2,55 @@
 
 **Version:** 1.0.0
 **Status:** Draft
-**Dateiendung:** `.dtf` / `.dtf.json`
+**File extension:** `.dtf` / `.dtf.json`
 **Encoding:** UTF-8
 
 ---
 
-## 1. Überblick
+## 1. Overview
 
-DitaFlow (`.dtf`) ist die kanonische JSON-Repräsentation des DITA-Informationsmodells. Das Format ermöglicht die vollständig verlustfreie, bidirektionale Konvertierung zwischen DITA XML (1.3 und 2.0) und einer editor- und datenbankfreundlichen JSON-Struktur.
+DitaFlow (`.dtf`) is the canonical JSON representation of the DITA Information Model.
+The format enables fully lossless, bidirectional conversion between DITA XML (1.3 and
+2.0) and an editor- and database-friendly JSON structure.
 
-### Designziele
+### Design goals
 
-| Ziel | Bedeutung |
-|------|-----------|
-| Semantische Äquivalenz | Jedes DITA-Element und -Attribut hat eine direkte DTF-Entsprechung |
-| Verlustfreier Round-Trip | DITA → DTF → DITA produziert identisches XML |
-| Spezialisierungsunterstützung | Spezialisierte Topics und Domains werden vollständig abgebildet |
-| Branch Filtering | `ditavalref` und Keyscopes sind First-Class-Konzepte |
-| Editor-Kompatibilität | DTF-Nodes entsprechen direkt ProseMirror/Tiptap-Nodes |
-| DB-Nativität | Speicherbar als PostgreSQL JSONB ohne Transformation |
+| Goal | Meaning |
+|------|---------|
+| Semantic equivalence | Every DITA element and attribute has a direct DTF counterpart |
+| Lossless round-trip | DITA → DTF → DITA produces a semantically identical document (see §9) |
+| Specialization support | Specialized topics and domains are fully represented |
+| Branch filtering | `ditavalref` and keyscopes are first-class concepts |
+| Editor compatibility | DTF nodes map directly onto ProseMirror/Tiptap nodes |
+| DB-native | Storable as PostgreSQL JSONB without transformation |
+
+### Coverage philosophy: structural, not enumerative
+
+DitaFlow does not aim for "100% DITA compatibility" by hand-modeling every element in
+every DITA domain. Instead, three primitives give full coverage by construction:
+
+1. **`classChain`** is copied verbatim from the source `class` attribute on import and
+   written back verbatim on export. Any specialization — known to the converter or
+   not — survives the round trip because the converter never needs to *recompute* it.
+2. **`attrs._ext`** captures any attribute not individually typed in `DtfAttrs` —
+   including standard DITA attributes that simply haven't been given their own field
+   (e.g. `domains`, `spectitle`, `keycol`, module-specific attributes), not just
+   attributes that are unknown to DITA. See §7.
+3. **The generic element node** (`type` / `classChain` / `baseType` / `attrs` /
+   `content`) represents any element that doesn't require a non-uniform child shape.
+
+Only structurally distinctive constructs get a bespoke node shape: the topic envelope,
+the map envelope, topicref trees, tables (CALS and simple), images, conref/conkeyref,
+keydef, and ditavalref. Everything else — including specializations the converter has
+no specific knowledge of, and DITA 2.0 additions not yet individually modeled — falls
+through to the generic node and round-trips correctly. Extending coverage of a new
+domain is additive (a registry entry, see §8), not an architectural change.
 
 ---
 
-## 2. Dokumenthülle
+## 2. Document envelope
 
-Jede DTF-Datei ist ein JSON-Objekt mit folgenden Pflichtfeldern:
+Every DTF file is a JSON object with the following required fields:
 
 ```json
 {
@@ -40,29 +64,40 @@ Jede DTF-Datei ist ein JSON-Objekt mit folgenden Pflichtfeldern:
 }
 ```
 
-### Feldübersicht
+### Field reference
 
-| Feld | Typ | Pflicht | Beschreibung |
+| Field | Type | Required | Description |
 |------|-----|---------|--------------|
-| `dtf` | `"ditaflow"` | ja | Format-Identifier |
-| `dtfVersion` | `"1.0.0"` | ja | Format-Version |
-| `ditaVersion` | `"1.3"` \| `"2.0"` | ja | Ziel-DITA-Version |
-| `doctype` | string | ja | Wurzelelement-Name (z.B. `"task"`, `"bookmap"`) |
-| `classChain` | string[] | ja | Vollständige DITA-class-Kette als Array |
-| `baseDoctype` | `"topic"` \| `"map"` | ja | Dokumentfamilie |
-| `root` | TopicNode \| MapNode | ja | Wurzelknoten |
-| `processingInstructions` | PI[] | nein | Erhaltene XML-PIs |
-| `meta` | DocumentMeta | nein | Import-Metadaten |
+| `dtf` | `"ditaflow"` | yes | Format identifier |
+| `dtfVersion` | `"1.0.0"` | yes | Format version |
+| `ditaVersion` | `"1.3"` \| `"2.0"` | yes | Target DITA specification version |
+| `doctype` | string | yes | Root element name (e.g. `"task"`, `"bookmap"`) |
+| `classChain` | string[] | yes | Full DITA class chain for the root element |
+| `baseDoctype` | `"topic"` \| `"map"` | yes | Document family |
+| `root` | TopicNode \| MapNode | yes | Root node |
+| `processingInstructions` | PI[] | no | Preserved XML PIs |
+| `meta` | DocumentMeta | no | Import metadata |
+
+### Version awareness
+
+`ditaVersion` selects which element/attribute tables the specialization registry and
+validator apply (DITA 2.0 changes some defaults and adds/removes a small number of
+elements relative to 1.3). This is a **data-table difference, not a structural one** —
+the node model (`classChain` / `attrs` / `_ext`) is identical across versions, so a
+converter upgrade to support a new DITA 2.0 element is a registry addition, not a
+schema change.
 
 ---
 
-## 3. Das classChain-Prinzip
+## 3. The classChain principle
 
-Das `classChain`-Feld ist das zentrale Mechanismus für verlustfreien Round-Trip bei Spezialisierungen.
+The `classChain` field is the central mechanism for lossless round-tripping of
+specializations.
 
-### Hintergrund
+### Background
 
-In DITA XML trägt jedes Element ein `class`-Attribut, das die vollständige Vererbungskette kodiert:
+In DITA XML, every element carries a `class` attribute encoding its full inheritance
+chain:
 
 ```xml
 <step class="- topic/li task/step ">
@@ -70,9 +105,10 @@ In DITA XML trägt jedes Element ein `class`-Attribut, das die vollständige Ver
 <apiOperation class="+ topic/section reference/section apiRef-d/apiOperation ">
 ```
 
-### DTF-Repräsentation
+### DTF representation
 
-DTF speichert diese Kette als Array, wobei jeder Eintrag genau einem Vererbungslevel entspricht:
+DTF stores this chain as an array, where each entry corresponds to one level of
+inheritance:
 
 ```json
 {
@@ -90,40 +126,51 @@ DTF speichert diese Kette als Array, wobei jeder Eintrag genau einem Vererbungsl
 }
 ```
 
-### Regeln
+### Rules
 
-1. `classChain` wird beim Import direkt aus dem DITA `class`-Attribut übernommen — keine Transformation.
-2. `baseType` ist das letzte Basis-Element in der Kette (der generischste Typ).
-3. Beim Export wird `classChain[0]` als `class`-Attribut rekonstruiert.
-4. Unbekannte Spezialisierungen werden transparent durchgereicht.
+1. `classChain` is copied directly from the DITA `class` attribute on import — no
+   transformation, no recomputation from a registry lookup.
+2. `baseType` is the last base element in the chain (the most generic type).
+3. On export, `classChain[0]` is written back as the `class` attribute verbatim.
+4. Unknown specializations are passed through transparently — the converter does not
+   need a registry entry for an element to round-trip it correctly (see §1).
 
 ---
 
-## 4. Knotentypen
+## 4. Node types
 
-### 4.1 Textknoten
+### 4.1 Text nodes
 
-Der einfachste Knoten. Entspricht einem XML-Textknoten.
+The simplest node. Corresponds to an XML text node.
 
 ```json
-{ "type": "text", "text": "Hallo Welt" }
+{ "type": "text", "text": "Hello world" }
 ```
 
-Mit Marks (rein formatielle Inline-Auszeichnung):
+With marks (purely formatting inline markup):
 
 ```json
 {
   "type": "text",
-  "text": "wichtiger Begriff",
+  "text": "important term",
   "marks": [{ "type": "b" }, { "type": "i" }]
 }
 ```
 
-**Marks vs. Nodes:** Nur strukturell flache Formatierungsmarker werden als Marks modelliert (`b`, `i`, `u`, `sup`, `sub`, `tt`). Alle semantischen Inline-Elemente (`xref`, `keyword`, `ph`, `cite`, `term`, `fn`) werden als `DtfElementNode` mit eigenem `content`-Array modelliert. Dies löst das ProseMirror-Limitation, dass Marks nicht verschachtelt werden können.
+**Marks vs. nodes — collapsing rule.** Only `b`, `i`, `u`, `sup`, `sub`, `tt` are
+*candidates* for representation as marks. An element collapses into a mark **only if
+its entire content is text (optionally already carrying other marks) with no element
+children** — e.g. `<b>important</b>` becomes a marked text node. If such an element
+contains any child element — e.g. `<b><xref href="..."/></b>` — marks cannot represent
+it (a mark cannot carry non-text content), so it is kept as a generic `DtfElementNode`
+with its own `content` array instead. This same rule is why all other semantic inline
+elements (`xref`, `keyword`, `ph`, `cite`, `term`, `fn`) are *always* modeled as
+`DtfElementNode`, never as marks: they are commonly nested and ProseMirror marks cannot
+nest.
 
-### 4.2 Elementknoten
+### 4.2 Element nodes
 
-Der universelle Container für alle DITA-Elemente.
+The universal container for all DITA elements.
 
 ```json
 {
@@ -135,14 +182,15 @@ Der universelle Container für alle DITA-Elemente.
     "audience": "admin"
   },
   "content": [
-    { "type": "text", "text": "Diesen Schritt nicht überspringen." }
+    { "type": "text", "text": "Do not skip this step." }
   ]
 }
 ```
 
-### 4.3 Conref-Knoten
+### 4.3 Conref nodes
 
-Expliziter Knotentyp für Inhaltsreferenzen. Nicht als Attribut auf einem Elementknoten — als eigener Typ, damit Editoren und Resolver sie direkt filtern können.
+An explicit node type for content references — not an attribute on a generic element
+node, but its own type, so editors and resolvers can filter for them directly.
 
 ```json
 {
@@ -155,7 +203,7 @@ Expliziter Knotentyp für Inhaltsreferenzen. Nicht als Attribut auf einem Elemen
 }
 ```
 
-Für key-basierte Conrefs:
+For key-based conrefs:
 
 ```json
 {
@@ -168,9 +216,10 @@ Für key-basierte Conrefs:
 }
 ```
 
-Das Feld `resolved` enthält nach der Auflösung die kopierten Knoten, bleibt `null` bis zur Auflösung.
+The `resolved` field holds the copied nodes once resolved; it stays `null` until
+resolution happens.
 
-### 4.4 Bild-Knoten
+### 4.4 Image nodes
 
 ```json
 {
@@ -184,23 +233,25 @@ Das Feld `resolved` enthält nach der Auflösung die kopierten Knoten, bleibt `n
     "width": "600px"
   },
   "alt": [
-    { "type": "text", "text": "Screenshot des Installationsassistenten" }
+    { "type": "text", "text": "Screenshot of the installation wizard" }
   ]
 }
 ```
 
-### 4.5 Processing Instructions und Kommentare
+### 4.5 Processing instructions and comments
 
 ```json
 { "type": "pi", "target": "ish-replace-vars", "data": "name=\"product\"" }
-{ "type": "comment", "text": " Reviewer: Diese Warnung prüfen " }
+{ "type": "comment", "text": " Reviewer: verify this warning " }
 ```
 
 ---
 
-## 5. Topic-Struktur
+## 5. Topic structure
 
-Ein Task-Topic in DTF:
+A task topic in DTF. Note the required `title` field — every DITA topic requires a
+`<title>` as its first child, so `title` is mandatory on every topic node (unlike the
+map's `title`, which DITA itself treats as optional):
 
 ```json
 {
@@ -216,18 +267,27 @@ Ein Task-Topic in DTF:
     "baseType": "topic",
     "attrs": {
       "id": "install-configure",
-      "xml:lang": "de-DE",
+      "xml:lang": "en-US",
       "audience": "admin",
       "product": "Server"
     },
     "content": [],
+    "title": {
+      "type": "title",
+      "classChain": ["- topic/title "],
+      "baseType": "title",
+      "attrs": {},
+      "content": [
+        { "type": "text", "text": "Configure the installation" }
+      ]
+    },
     "shortdesc": {
       "type": "shortdesc",
       "classChain": ["- topic/shortdesc task/shortdesc "],
       "baseType": "shortdesc",
       "attrs": {},
       "content": [
-        { "type": "text", "text": "Konfigurieren Sie die Installation für Ihre Umgebung." }
+        { "type": "text", "text": "Configure the installation for your environment." }
       ]
     },
     "body": {
@@ -261,7 +321,7 @@ Ein Task-Topic in DTF:
                   "baseType": "ph",
                   "attrs": {},
                   "content": [
-                    { "type": "text", "text": "Verzeichnis anlegen." }
+                    { "type": "text", "text": "Create the directory." }
                   ]
                 }
               ]
@@ -276,7 +336,7 @@ Ein Task-Topic in DTF:
 
 ---
 
-## 6. Map-Struktur mit Branch Filtering und Keyscopes
+## 6. Map structure with branch filtering and keyscopes
 
 ```json
 {
@@ -290,7 +350,7 @@ Ein Task-Topic in DTF:
     "type": "bookmap",
     "classChain": ["- map/map bookmap/bookmap "],
     "baseType": "map",
-    "attrs": { "id": "product-manual", "xml:lang": "de-DE" },
+    "attrs": { "id": "product-manual", "xml:lang": "en-US" },
     "content": [],
     "keyscope": ["manual"],
     "topicrefs": [
@@ -339,18 +399,26 @@ Ein Task-Topic in DTF:
 }
 ```
 
-### Keyscope-Auflösungsregeln
+### Keyscope resolution rules
 
-1. `_keyscopePath` ist ein berechnetes Feld, das beim Import/Prozessieren gesetzt wird.
-2. Jeder Keyscope-Name wird mit dem Eltern-Scope durch `.` verbunden: `"manual.server-edition"`.
-3. Die Key-Auflösung sucht vom engsten zum weitesten Scope (lokaler Scope zuerst, dann Eltern-Scopes).
-4. `_keyscopePath` wird beim DTF→DITA Export **nicht** serialisiert (ist ein Prozessierungs-Artefakt).
+1. `_keyscopePath` is a computed field set during import/processing.
+2. Each keyscope name is joined to its parent scope with `.`: `"manual.server-edition"`.
+3. Key resolution searches from the narrowest to the widest scope (local scope first,
+   then parent scopes).
+4. `_keyscopePath` is **not** serialized on DTF→DITA export — it is a processing
+   artifact, not part of the DITA data model.
 
 ---
 
-## 7. attrs._ext — Transparente Erweiterungsattribute
+## 7. attrs._ext — transparent extension attributes
 
-Jedes unbekannte Attribut, das beim DITA-Import angetroffen wird, landet in `attrs._ext`:
+`attrs._ext` is the catch-all for **any attribute not present as a typed field in
+`DtfAttrs`** — this includes attributes that are unknown to DITA *and* standard DITA
+attributes that simply haven't been given an individual typed field (e.g. `domains` on
+a map root, `spectitle`, `keycol`, module-specific attributes from a domain the
+converter hasn't special-cased). This distinction matters: `_ext` is not an error
+bucket for malformed input, it is the primary mechanism by which DitaFlow achieves full
+DITA coverage without enumerating every attribute of every domain (see §1).
 
 ```json
 {
@@ -365,13 +433,15 @@ Jedes unbekannte Attribut, das beim DITA-Import angetroffen wird, landet in `att
 }
 ```
 
-Diese Attribute werden beim Export unverändert auf das XML-Element geschrieben. Kein Datenverlust, auch bei proprietären CMS-Erweiterungen (Ixiasoft, SDL Tridion, etc.).
+These attributes are written back unchanged onto the XML element on export. No data is
+lost, even for proprietary CMS extensions (Ixiasoft, SDL Tridion, etc.) or DITA
+attributes the converter has not individually modeled yet.
 
 ---
 
-## 8. Spezialisierungs-Plugin-Interface
+## 8. Specialization plugin interface
 
-Neue Spezialisierungen werden über eine Registry registriert:
+New specializations are registered via a registry:
 
 ```typescript
 const registry = new DtfSpecialisationRegistry();
@@ -389,61 +459,85 @@ registry.register({
 });
 ```
 
-Der Konverter und Editor nutzen die Registry für:
-- Korrekte `classChain`-Generierung beim Import
-- Validierung spezialisierungs-spezifischer Attribute
-- Editor-Toolbar: welche Elemente sind in welchem Kontext erlaubt
+The converter and editor use the registry for:
+- Attribute validation specific to a specialization
+- Editor toolbar: which elements are allowed in which context
+
+The registry is **not** required for correct round-tripping. An unregistered
+specialization still imports and exports correctly via `classChain` (§3) and `_ext`
+(§7) — registering it only adds validation and editor affordances, per §1.
 
 ---
 
-## 9. Round-Trip-Garantien
+## 9. Round-trip guarantees
 
-### Was verlustfrei ist
+DitaFlow's round-trip guarantee is **semantic identity**, not byte-for-byte identity.
+DITA → DTF → DITA must produce a document that is structurally and semantically
+identical to, and processed identically by any standard DITA tool as, the original —
+but is not guaranteed to be byte-identical to the original file.
 
-| Element | Garantie |
-|---------|----------|
-| Alle DITA-Elemente | ✓ vollständig |
-| Alle DITA-Attribute | ✓ vollständig |
-| Unbekannte Attribute (`_ext`) | ✓ vollständig |
-| Spezialisierungen (via `classChain`) | ✓ vollständig |
-| Processing Instructions | ✓ vollständig |
-| XML-Kommentare | ✓ vollständig |
-| Branch Filtering (`ditavalref`) | ✓ vollständig |
-| Keyscopes | ✓ vollständig |
-| CALS-Tabellen inkl. `colspec`/`spanspec` | ✓ vollständig |
-| Mixed Content (Text + Inline gemischt) | ✓ vollständig |
+### Canonical comparison rules
 
-### Was nicht Round-Trip-fähig ist (by design)
+The reference comparison between an original and a reconstructed document is:
 
-| Element | Begründung |
-|---------|------------|
-| XML-Namespacedeklarationen auf Nicht-Wurzelelementen | Selten, nicht DITA-konform |
-| Whitespace zwischen Attributen | Semantisch irrelevant |
-| Reihenfolge von Attributen | XML-Standard: attribut-Reihenfolge ist bedeutungslos |
-| BOM (Byte Order Mark) | Normalisiert zu UTF-8 ohne BOM |
+| Aspect | Rule |
+|--------|------|
+| Element tree | Identical element names and identical nesting/order |
+| Attributes | Identical attribute names and values; attribute **order** is not compared |
+| Text content | Identical, character for character, for every text node |
+| Inter-element whitespace | Whitespace that occurs only between elements in an element-only content model (e.g. between `<li>` siblings of `<ol>`) is **not** preserved — it is insignificant per the DITA content model and is normalized to a consistent pretty-printed form on export |
+| Whitespace inside text-bearing content | Preserved exactly, because it lives inside a text node (e.g. inside `<p>`, `<codeblock>`, `<pre>`) and is therefore part of the document's semantic content |
+| Attribute whitespace | Whitespace between attributes inside a start tag is not compared (semantically irrelevant) |
+| BOM | Normalized to UTF-8 without BOM |
+
+### What is lossless
+
+| Element | Guarantee |
+|---------|-----------|
+| All DITA elements | ✓ fully |
+| All DITA attributes | ✓ fully |
+| Unknown/unmodeled attributes (`_ext`) | ✓ fully |
+| Specializations (via `classChain`), registered or not | ✓ fully |
+| Processing instructions | ✓ fully |
+| XML comments | ✓ fully |
+| Branch filtering (`ditavalref`) | ✓ fully |
+| Keyscopes | ✓ fully |
+| CALS tables incl. `colspec`/`spanspec` | ✓ fully |
+| Mixed content (text and inline markup interleaved) | ✓ fully |
+
+### What is not round-trip-preserved (by design)
+
+| Aspect | Rationale |
+|--------|-----------|
+| Original pretty-printing / inter-element whitespace | Insignificant per the DITA content model; see comparison rules above |
+| XML namespace declarations on non-root elements | Rare, not idiomatic DITA |
+| Attribute order | XML standard: attribute order carries no meaning |
+| BOM (Byte Order Mark) | Normalized to UTF-8 without BOM |
 
 ---
 
-## 10. Versionierung
+## 10. Versioning
 
-DitaFlow-Dokumente sind vorwärtskompatibel:
-- `dtfVersion` wird bei Breaking Changes inkrementiert.
-- Unbekannte Felder werden ignoriert (nicht verworfen).
-- Der Konverter schreibt immer die aktuelle Version.
-- Ältere Dokumente können mit einem Migrations-Script aktualisiert werden.
+DitaFlow documents are forward-compatible:
+- `dtfVersion` is incremented on breaking changes.
+- Unknown fields are ignored (not discarded — i.e. round-tripped through a generic
+  store if encountered inside a node's `_ext`/`content`, dropped only at the document
+  envelope level if truly unrecognized).
+- The converter always writes the current version.
+- Older documents can be brought up to date with a migration script.
 
 ---
 
-## 11. Dateikonventionen
+## 11. File conventions
 
-| Konvention | Regel |
-|------------|-------|
-| Dateiendung | `.dtf` (bevorzugt) oder `.dtf.json` |
-| Encoding | UTF-8, kein BOM |
-| Zeilenende | LF (`\n`) |
-| Einrückung (gespeichert) | Minifiziert (kein Whitespace) |
-| Einrückung (Debug/Export) | 2 Spaces |
-| Dateiname | entspricht dem `id`-Attribut des Wurzel-Topics/Maps |
+| Convention | Rule |
+|------------|------|
+| File extension | `.dtf` (preferred) or `.dtf.json` |
+| Encoding | UTF-8, no BOM |
+| Line ending | LF (`\n`) |
+| Indentation (stored) | Minified (no whitespace) |
+| Indentation (debug/export) | 2 spaces |
+| File name | Matches the `id` attribute of the root topic/map |
 
 ---
 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="install-configure" audience="admin" product="Server">
+  <title>Configure the installation</title>
+  <shortdesc>Configure the installation for your environment.</shortdesc>
+  <taskbody>
+    <prereq>
+      <p>Make sure you have <b>administrator</b> privileges before continuing.</p>
+    </prereq>
+    <steps>
+      <step importance="required">
+        <cmd>Create the target directory.</cmd>
+        <info>Use a path with no spaces.</info>
+      </step>
+      <step>
+        <cmd>Run the installer with the <tt>--config</tt> flag.</cmd>
+      </step>
+    </steps>
+    <result>
+      <p>The installation is configured and ready to start.</p>
+    </result>
+  </taskbody>
+</task>

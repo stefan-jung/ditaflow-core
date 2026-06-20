@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<concept id="server-overview" xml:lang="en-US">
+  <title>Server overview</title>
+  <conbody>
+    <p>This server supports the following deployment models.</p>
+    <note conref="../shared/warnings.dita#common-warnings/no-root-note"/>
+    <ul>
+      <li conkeyref="shared-content/warranty-note"/>
+      <li>Standalone deployment.</li>
+    </ul>
+  </conbody>
+</concept>

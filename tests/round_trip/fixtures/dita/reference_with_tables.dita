@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<reference id="api-limits">
+  <title>API limits</title>
+  <refbody>
+    <section>
+      <title>Rate limits</title>
+      <table>
+        <title>Rate limits by plan</title>
+        <tgroup cols="3">
+          <colspec colname="col1" colwidth="1*"/>
+          <colspec colname="col2" colwidth="1*"/>
+          <colspec colname="col3" colwidth="1*"/>
+          <thead>
+            <row>
+              <entry>Plan</entry>
+              <entry>Requests/min</entry>
+              <entry>Burst</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>Free</entry>
+              <entry>60</entry>
+              <entry>10</entry>
+            </row>
+            <row>
+              <entry>Pro</entry>
+              <entry>600</entry>
+              <entry>100</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    </section>
+    <section>
+      <title>Quotas</title>
+      <simpletable>
+        <sthead>
+          <stentry>Resource</stentry>
+          <stentry>Quota</stentry>
+        </sthead>
+        <strow>
+          <stentry>Projects</stentry>
+          <stentry>50</stentry>
+        </strow>
+        <strow>
+          <stentry>Users</stentry>
+          <stentry>200</stentry>
+        </strow>
+      </simpletable>
+    </section>
+  </refbody>
+</reference>

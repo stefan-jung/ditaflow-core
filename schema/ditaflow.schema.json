@@ -110,17 +110,25 @@
         "print":       { "type": "string", "enum": ["yes","no","printonly"] },
         "search":      { "type": "string", "enum": ["yes","no"] },
         "chunk":       { "type": "string" },
+        "collection-type": { "type": "string", "enum": ["unordered","sequence","choice","family"] },
+        "linking":     { "type": "string", "enum": ["none","normal","sourceonly","targetonly"] },
         "keyscope":    { "type": "string" },
-        "frame":       { "type": "string" },
+        "frame":       { "type": "string", "enum": ["all","bottom","none","sides","top","topbot"] },
         "colsep":      { "type": "string", "enum": ["0","1"] },
         "rowsep":      { "type": "string", "enum": ["0","1"] },
+        "rowheader":   { "type": "string", "enum": ["firstcol","norowheader"] },
         "height":      { "type": "string" },
         "width":       { "type": "string" },
+        "scale":       { "type": "string" },
+        "scalefit":    { "type": "string", "enum": ["yes","no"] },
+        "placement":   { "type": "string", "enum": ["break","inline"] },
+        "align":       { "type": "string", "enum": ["left","right","center","justify"] },
         "note_type":   { "type": "string", "enum": ["note","tip","fastpath","restriction","important","remember","attention","caution","danger","warning","trouble","other"] },
+        "hazard":      { "type": "string" },
         "_ext": {
           "type": "object",
           "additionalProperties": { "type": "string" },
-          "description": "Unknown or extension attributes. Preserved verbatim for lossless round-trip."
+          "description": "Any attribute not given its own typed field above, including standard-but-unmodeled DITA attributes (e.g. domains, spectitle, keycol) as well as genuinely unknown ones. Preserved verbatim for lossless round-trip."
         }
       },
       "additionalProperties": false
@@ -235,10 +243,136 @@
         { "$ref": "#/definitions/textNode" },
         { "$ref": "#/definitions/conrefNode" },
         { "$ref": "#/definitions/imageNode" },
+        { "$ref": "#/definitions/tableNode" },
+        { "$ref": "#/definitions/simpletableNode" },
         { "$ref": "#/definitions/processingInstruction" },
         { "$ref": "#/definitions/comment" },
         { "$ref": "#/definitions/elementNode" }
       ]
+    },
+
+    "leafNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string" },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string" },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "content":    { "type": "array", "maxItems": 0 }
+      }
+    },
+
+    "tableNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "const": "table" },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string", "const": "table" },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "title":      { "type": "array", "items": { "$ref": "#/definitions/node" } },
+        "desc":       { "type": "array", "items": { "$ref": "#/definitions/node" } },
+        "tgroups":    { "type": "array", "items": { "$ref": "#/definitions/tgroupNode" } }
+      }
+    },
+
+    "tgroupNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs","tbody"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "const": "tgroup" },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string", "const": "tgroup" },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "colspecs":   { "type": "array", "items": { "$ref": "#/definitions/leafNode" } },
+        "spanspecs":  { "type": "array", "items": { "$ref": "#/definitions/leafNode" } },
+        "thead":      { "$ref": "#/definitions/tableSectionNode" },
+        "tbody":      { "$ref": "#/definitions/tableSectionNode" },
+        "tfoot":      { "$ref": "#/definitions/tableSectionNode" }
+      }
+    },
+
+    "tableSectionNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs","rows"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "enum": ["thead","tbody","tfoot"] },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string", "enum": ["thead","tbody","tfoot"] },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "rows":       { "type": "array", "items": { "$ref": "#/definitions/rowNode" } }
+      }
+    },
+
+    "rowNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs","entries"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "const": "row" },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string", "const": "row" },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "entries":    { "type": "array", "items": { "$ref": "#/definitions/entryNode" } }
+      }
+    },
+
+    "entryNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs","content"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "const": "entry" },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string", "const": "entry" },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "content":    { "type": "array", "items": { "$ref": "#/definitions/node" } }
+      }
+    },
+
+    "simpletableNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "const": "simpletable" },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string", "const": "simpletable" },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "sthead":     { "$ref": "#/definitions/strowNode" },
+        "strows":     { "type": "array", "items": { "$ref": "#/definitions/strowNode" } }
+      }
+    },
+
+    "strowNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs","entries"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "enum": ["sthead","strow"] },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string", "enum": ["sthead","strow"] },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "entries":    { "type": "array", "items": { "$ref": "#/definitions/stentryNode" } }
+      }
+    },
+
+    "stentryNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs","content"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "const": "stentry" },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string", "const": "stentry" },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "content":    { "type": "array", "items": { "$ref": "#/definitions/node" } }
+      }
     },
 
     "ditavalProp": {
@@ -317,13 +451,14 @@
 
     "topicNode": {
       "type": "object",
-      "required": ["type","classChain","baseType","attrs","content"],
+      "required": ["type","classChain","baseType","attrs","content","title"],
       "properties": {
         "type":       { "type": "string" },
         "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
         "baseType":   { "type": "string", "const": "topic" },
         "attrs":      { "$ref": "#/definitions/attrs" },
         "content":    { "type": "array", "items": { "$ref": "#/definitions/node" } },
+        "title":      { "$ref": "#/definitions/elementNode", "description": "Mandatory per DITA: every topic requires a <title> as first child." },
         "shortdesc":  { "$ref": "#/definitions/elementNode" },
         "abstract":   { "$ref": "#/definitions/elementNode" },
         "prolog":     { "$ref": "#/definitions/elementNode" },
