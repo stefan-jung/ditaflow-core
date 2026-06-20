@@ -1,0 +1,356 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ditaflow.io/schema/1.0.0/ditaflow.schema.json",
+  "title": "DitaFlow Document Schema",
+  "description": "JSON Schema for DitaFlow (.dtf) documents — the canonical JSON representation of the DITA Information Model.",
+  "version": "1.0.0",
+
+  "type": "object",
+  "required": ["dtf", "dtfVersion", "ditaVersion", "doctype", "classChain", "baseDoctype", "root"],
+  "additionalProperties": false,
+
+  "properties": {
+    "dtf": {
+      "type": "string",
+      "const": "ditaflow",
+      "description": "Format identifier. Always 'ditaflow'."
+    },
+    "dtfVersion": {
+      "type": "string",
+      "enum": ["1.0.0"],
+      "description": "DitaFlow format version."
+    },
+    "ditaVersion": {
+      "type": "string",
+      "enum": ["1.3", "2.0"],
+      "description": "Target DITA specification version."
+    },
+    "doctype": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Root DITA element name. Examples: topic, concept, task, reference, map, bookmap."
+    },
+    "classChain": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Full DITA class chain for the root element. Mirrors the DITA class attribute."
+    },
+    "baseDoctype": {
+      "type": "string",
+      "enum": ["topic", "map"],
+      "description": "Whether this document is a topic or a map."
+    },
+    "processingInstructions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/processingInstruction" }
+    },
+    "root": {
+      "oneOf": [
+        { "$ref": "#/definitions/topicNode" },
+        { "$ref": "#/definitions/mapNode" }
+      ]
+    },
+    "meta": {
+      "$ref": "#/definitions/documentMeta"
+    }
+  },
+
+  "definitions": {
+
+    "documentMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceUri":     { "type": "string" },
+        "sourceHash":    { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "importedAt":    { "type": "string", "format": "date-time" },
+        "originalDoctype": { "type": "string" },
+        "doctypeDecl": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name":     { "type": "string" },
+            "publicId": { "type": "string" },
+            "systemId": { "type": "string" }
+          }
+        }
+      }
+    },
+
+    "attrs": {
+      "type": "object",
+      "properties": {
+        "id":          { "type": "string" },
+        "conref":      { "type": "string" },
+        "conrefend":   { "type": "string" },
+        "conaction":   { "type": "string", "enum": ["mark","pushbefore","pushafter","pushreplace","-dita-use-conref-target"] },
+        "conkeyref":   { "type": "string" },
+        "keyref":      { "type": "string" },
+        "keys":        { "type": "string" },
+        "outputclass": { "type": "string" },
+        "translate":   { "type": "string", "enum": ["yes","no"] },
+        "xml:lang":    { "type": "string" },
+        "dir":         { "type": "string", "enum": ["ltr","rtl","lro","rlo"] },
+        "importance":  { "type": "string", "enum": ["default","deprecated","optional","required","recommended"] },
+        "status":      { "type": "string", "enum": ["new","changed","deleted","unchanged"] },
+        "rev":         { "type": "string" },
+        "audience":    { "type": "string" },
+        "product":     { "type": "string" },
+        "platform":    { "type": "string" },
+        "props":       { "type": "string" },
+        "otherprops":  { "type": "string" },
+        "href":        { "type": "string" },
+        "format":      { "type": "string" },
+        "scope":       { "type": "string", "enum": ["local","peer","external"] },
+        "type":        { "type": "string" },
+        "navtitle":    { "type": "string" },
+        "locktitle":   { "type": "string", "enum": ["yes","no"] },
+        "toc":         { "type": "string", "enum": ["yes","no"] },
+        "print":       { "type": "string", "enum": ["yes","no","printonly"] },
+        "search":      { "type": "string", "enum": ["yes","no"] },
+        "chunk":       { "type": "string" },
+        "keyscope":    { "type": "string" },
+        "frame":       { "type": "string" },
+        "colsep":      { "type": "string", "enum": ["0","1"] },
+        "rowsep":      { "type": "string", "enum": ["0","1"] },
+        "height":      { "type": "string" },
+        "width":       { "type": "string" },
+        "note_type":   { "type": "string", "enum": ["note","tip","fastpath","restriction","important","remember","attention","caution","danger","warning","trouble","other"] },
+        "_ext": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Unknown or extension attributes. Preserved verbatim for lossless round-trip."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "textNode": {
+      "type": "object",
+      "required": ["type", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type":  { "type": "string", "const": "text" },
+        "text":  { "type": "string" },
+        "marks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/mark" }
+        }
+      }
+    },
+
+    "mark": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["b","i","u","sup","sub","tt","line-through","overline",
+                   "hi-d/b","hi-d/i","hi-d/line-through","hi-d/overline",
+                   "hi-d/sup","hi-d/sub","hi-d/tt","hi-d/u"]
+        }
+      }
+    },
+
+    "processingInstruction": {
+      "type": "object",
+      "required": ["type","target"],
+      "additionalProperties": false,
+      "properties": {
+        "type":   { "type": "string", "const": "pi" },
+        "target": { "type": "string" },
+        "data":   { "type": "string" }
+      }
+    },
+
+    "comment": {
+      "type": "object",
+      "required": ["type","text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "const": "comment" },
+        "text": { "type": "string" }
+      }
+    },
+
+    "conrefNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "const": "conref" },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string" },
+        "conref":     { "type": "string" },
+        "conkeyref":  { "type": "string" },
+        "conrefend":  { "type": "string" },
+        "conaction":  { "type": "string" },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "resolved": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "array", "items": { "$ref": "#/definitions/node" } }
+          ]
+        }
+      }
+    },
+
+    "imageNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs"],
+      "additionalProperties": false,
+      "properties": {
+        "type":       { "type": "string", "const": "image" },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string", "const": "image" },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "alt":        { "type": "array", "items": { "$ref": "#/definitions/node" } },
+        "longdescref": {
+          "type": "object",
+          "properties": {
+            "href":   { "type": "string" },
+            "keyref": { "type": "string" },
+            "format": { "type": "string" }
+          }
+        }
+      }
+    },
+
+    "elementNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs","content"],
+      "properties": {
+        "type":              { "type": "string" },
+        "classChain":        { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":          { "type": "string" },
+        "attrs":             { "$ref": "#/definitions/attrs" },
+        "content":           { "type": "array", "items": { "$ref": "#/definitions/node" } },
+        "precedingComments": { "type": "array", "items": { "$ref": "#/definitions/comment" } }
+      }
+    },
+
+    "node": {
+      "oneOf": [
+        { "$ref": "#/definitions/textNode" },
+        { "$ref": "#/definitions/conrefNode" },
+        { "$ref": "#/definitions/imageNode" },
+        { "$ref": "#/definitions/processingInstruction" },
+        { "$ref": "#/definitions/comment" },
+        { "$ref": "#/definitions/elementNode" }
+      ]
+    },
+
+    "ditavalProp": {
+      "type": "object",
+      "required": ["att","action"],
+      "additionalProperties": false,
+      "properties": {
+        "att":    { "type": "string" },
+        "val":    { "type": "string" },
+        "action": { "type": "string", "enum": ["include","exclude","passthrough","flag"] },
+        "flag": {
+          "type": "object",
+          "properties": {
+            "color":      { "type": "string" },
+            "backcolor":  { "type": "string" },
+            "style":      { "type": "string", "enum": ["underline","double-underline","italics","overline","bold"] },
+            "startflag":  { "type": "object", "properties": { "imageref": { "type": "string" }, "alt": { "type": "string" } } },
+            "endflag":    { "type": "object", "properties": { "imageref": { "type": "string" }, "alt": { "type": "string" } } }
+          }
+        }
+      }
+    },
+
+    "ditavalProfile": {
+      "type": "object",
+      "required": ["props"],
+      "additionalProperties": false,
+      "properties": {
+        "version":       { "type": "string", "const": "1.0" },
+        "props":         { "type": "array", "items": { "$ref": "#/definitions/ditavalProp" } },
+        "defaultAction": { "type": "string", "enum": ["include","exclude","passthrough","flag"] }
+      }
+    },
+
+    "ditavalrefNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs","content"],
+      "additionalProperties": false,
+      "properties": {
+        "type":             { "type": "string", "const": "ditavalref" },
+        "classChain":       { "type": "array", "items": { "type": "string" } },
+        "baseType":         { "type": "string", "const": "ditavalref" },
+        "attrs":            { "$ref": "#/definitions/attrs" },
+        "content":          { "type": "array", "items": { "$ref": "#/definitions/node" } },
+        "href":             { "type": "string" },
+        "keyref":           { "type": "string" },
+        "inlinedDitaval":   { "$ref": "#/definitions/ditavalProfile" },
+        "dvrResourcePrefix":  { "type": "string" },
+        "dvrResourceSuffix":  { "type": "string" },
+        "dvrKeyscopePrefix":  { "type": "string" },
+        "dvrKeyscopeSuffix":  { "type": "string" }
+      }
+    },
+
+    "topicrefNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs","content"],
+      "additionalProperties": false,
+      "properties": {
+        "type":         { "type": "string" },
+        "classChain":   { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":     { "type": "string", "const": "topicref" },
+        "attrs":        { "$ref": "#/definitions/attrs" },
+        "content":      { "type": "array", "items": { "$ref": "#/definitions/node" } },
+        "href":         { "type": "string" },
+        "keyref":       { "type": "string" },
+        "keys":         { "type": "array", "items": { "type": "string" } },
+        "keyscope":     { "type": "array", "items": { "type": "string" } },
+        "_keyscopePath":{ "type": "array", "items": { "type": "string" } },
+        "topicmeta":    { "$ref": "#/definitions/elementNode" },
+        "ditavalrefs":  { "type": "array", "items": { "$ref": "#/definitions/ditavalrefNode" } },
+        "children":     { "type": "array", "items": { "$ref": "#/definitions/topicrefNode" } },
+        "precedingComments": { "type": "array", "items": { "$ref": "#/definitions/comment" } }
+      }
+    },
+
+    "topicNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs","content"],
+      "properties": {
+        "type":       { "type": "string" },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string", "const": "topic" },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "content":    { "type": "array", "items": { "$ref": "#/definitions/node" } },
+        "shortdesc":  { "$ref": "#/definitions/elementNode" },
+        "abstract":   { "$ref": "#/definitions/elementNode" },
+        "prolog":     { "$ref": "#/definitions/elementNode" },
+        "body":       { "$ref": "#/definitions/elementNode" },
+        "related_links": { "$ref": "#/definitions/elementNode" },
+        "nested":     { "type": "array", "items": { "$ref": "#/definitions/topicNode" } },
+        "precedingComments": { "type": "array", "items": { "$ref": "#/definitions/comment" } }
+      }
+    },
+
+    "mapNode": {
+      "type": "object",
+      "required": ["type","classChain","baseType","attrs","content","topicrefs"],
+      "properties": {
+        "type":       { "type": "string" },
+        "classChain": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "baseType":   { "type": "string", "const": "map" },
+        "attrs":      { "$ref": "#/definitions/attrs" },
+        "content":    { "type": "array", "items": { "$ref": "#/definitions/node" } },
+        "title":      { "type": "array", "items": { "$ref": "#/definitions/node" } },
+        "topicmeta":  { "$ref": "#/definitions/elementNode" },
+        "keydefs":    { "type": "array", "items": { "$ref": "#/definitions/topicrefNode" } },
+        "reltables":  { "type": "array", "items": { "$ref": "#/definitions/elementNode" } },
+        "topicrefs":  { "type": "array", "items": { "$ref": "#/definitions/topicrefNode" } },
+        "keyscope":   { "type": "array", "items": { "type": "string" } },
+        "precedingComments": { "type": "array", "items": { "$ref": "#/definitions/comment" } }
+      }
+    }
+  }
+}
