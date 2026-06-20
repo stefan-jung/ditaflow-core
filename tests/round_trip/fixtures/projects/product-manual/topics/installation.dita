@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task id="installation" audience="admin">
+  <title>Install the server</title>
+  <shortdesc>Install the server software on a supported platform.</shortdesc>
+  <taskbody>
+    <prereq>
+      <p>Make sure you have <b>administrator</b> privileges.</p>
+    </prereq>
+    <steps>
+      <step>
+        <cmd>Download the installer package.</cmd>
+      </step>
+      <step>
+        <cmd>Run the installer.</cmd>
+        <info>
+          <image href="../images/install-wizard.png" placement="break">
+            <alt>The installation wizard</alt>
+          </image>
+        </info>
+      </step>
+    </steps>
+  </taskbody>
+</task>

@@ -36,7 +36,14 @@ jobs:
         run: mypy ditaflow/
 
       - name: Run tests
-        run: pytest --cov=ditaflow --cov-report=xml
+        run: pytest --cov=ditaflow --cov-report=xml --junitxml=test-results.xml
+
+      - name: Write job summary
+        if: always()
+        run: |
+          python scripts/pytest_summary.py test-results.xml \
+            --title "Unit + round-trip tests (Python ${{ matrix.python-version }})" \
+            --coverage-xml coverage.xml >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage
         uses: codecov/codecov-action@v7
@@ -62,7 +69,13 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Run round-trip tests
-        run: pytest tests/round_trip/ -v
+        run: pytest tests/round_trip/ -v --junitxml=round-trip-results.xml
+
+      - name: Write job summary
+        if: always()
+        run: |
+          python scripts/pytest_summary.py round-trip-results.xml \
+            --title "Round-trip validation" >> "$GITHUB_STEP_SUMMARY"
 
   release:
     name: Release to PyPI

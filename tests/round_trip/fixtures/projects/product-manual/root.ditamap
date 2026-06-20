@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bookmap id="product-manual" xml:lang="en-US" keyscope="manual">
+  <title>Product manual</title>
+  <chapter href="topics/installation.dita" keyscope="server-edition">
+    <ditavalref href="filters/server.ditaval" dvrKeyscopePrefix="server-"/>
+  </chapter>
+  <chapter href="topics/configuration.dita"/>
+</bookmap>

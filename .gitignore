@@ -29,6 +29,8 @@ htmlcov/
 .pytest_cache/
 coverage.xml
 *.cover
+test-results.xml
+round-trip-results.xml
 
 # Type checking
 .mypy_cache/

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<concept id="configuration">
+  <title>Configuration options</title>
+  <conbody>
+    <p>The following options are available after installation.</p>
+    <table>
+      <title>Configuration options</title>
+      <tgroup cols="2">
+        <colspec colname="col1" colwidth="1*"/>
+        <colspec colname="col2" colwidth="1*"/>
+        <thead>
+          <row>
+            <entry>Option</entry>
+            <entry>Default</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>port</entry>
+            <entry>8080</entry>
+          </row>
+          <row>
+            <entry>log-level</entry>
+            <entry>info</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+  </conbody>
+</concept>

@@ -47,7 +47,8 @@ pip install ditaflow-core
 ## Quick Start
 
 ```python
-from ditaflow.converter import DitaParser, DitaSerializer
+from ditaflow.converter.dita_parser import DitaParser
+from ditaflow.converter.dita_serializer import DtfSerializer
 
 # DITA XML → DitaFlow
 parser = DitaParser()
@@ -55,7 +56,7 @@ result = parser.parse_file("my-topic.dita")
 dtf_doc = result.document
 
 # DitaFlow → DITA XML
-serializer = DitaSerializer()
+serializer = DtfSerializer()
 xml_result = serializer.serialize(dtf_doc)
 print(xml_result.xml)
 ```
@@ -104,23 +105,89 @@ ditaflow-core/
 │   └── ditaflow.schema.json   # JSON Schema (Draft 7)
 ├── spec/
 │   └── DITAFLOW-SPEC.md       # Format specification
-├── converter/
-│   ├── dita_parser.py         # DITA XML → DTF
-│   ├── dita_serializer.py     # DTF → DITA XML
-│   ├── branch_processor.py    # Branch Filter & Keyscope engine
-│   ├── specialisation_registry.py
-│   └── plugins/               # Specialisation plugins
-├── validator/
-│   └── dtf_validator.py
-├── cli/
-│   └── dtf.py
+├── ditaflow/
+│   ├── converter/
+│   │   ├── dita_parser.py             # DITA XML → DTF
+│   │   ├── dita_serializer.py         # DTF → DITA XML
+│   │   ├── specialisation_registry.py
+│   │   └── plugins/                   # Specialisation plugins
+│   ├── validator/
+│   │   └── dtf_validator.py
+│   └── cli/
+│       └── dtf.py
 └── tests/
-    ├── unit/
+    ├── unit/                  # Focused tests for one converter rule at a time
     └── round_trip/
+        ├── test_roundtrip.py          # single-file feature fixtures
+        ├── test_project_roundtrip.py  # multi-file project fixtures
         └── fixtures/
-            ├── dita/          # DITA XML test files
-            └── dtf/           # Expected DTF output
+            ├── dita/          # single .dita/.ditamap files, one feature each
+            └── projects/      # multi-file projects (map + topics + assets)
 ```
+
+## Testing
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+
+pytest                          # everything: unit + round-trip
+pytest tests/unit/              # unit tests only
+pytest tests/round_trip/        # round-trip tests only
+pytest --cov=ditaflow           # with coverage
+ruff check . && ruff format --check . && mypy ditaflow/   # lint, format, types
+```
+
+The round-trip guarantee this suite checks is **semantic identity**, not
+byte-for-byte identity (see spec/DITAFLOW-SPEC.md §9): DITA → DTF → DITA must
+produce a document that re-parses back to the same DTF — not necessarily the
+same bytes (e.g. pretty-printing isn't preserved).
+
+### Adding a test for one DITA construct
+
+Use this when you want to prove a single feature round-trips (a table
+variant, a new domain element, a DITA 2.0 construct, an edge case) — most new
+tests should be this kind.
+
+1. Drop a `.dita` file into `tests/round_trip/fixtures/dita/`, named after
+   what it tests (e.g. `task_with_nested_keyscopes.dita`).
+2. That's it. `test_roundtrip.py` globs every `*.dita` file in that directory
+   and parametrizes over it automatically — no code change required.
+3. If you also want to assert something specific about the parsed structure
+   (not just "it round-trips"), add a matching test in `tests/unit/`, e.g.
+   `tests/unit/test_branch_filtering.py` for ditavalref parsing.
+
+### Adding a test for a full project
+
+Use this when the thing you're testing only shows up *across* files — a
+topicref `href` that must keep resolving to the right relative path, an
+image reference inside a referenced topic, a `ditavalref` pointing at a
+`.ditaval` file. A single isolated `.dita` file can't exercise this; see
+`tests/round_trip/fixtures/projects/product-manual/` for a worked example.
+
+1. Create `tests/round_trip/fixtures/projects/<scenario-name>/` and lay it
+   out like a real authoring project, e.g.:
+   ```
+   <scenario-name>/
+   ├── root.ditamap
+   ├── topics/*.dita
+   ├── images/
+   └── filters/*.ditaval
+   ```
+2. Make sure `href` attributes between files actually resolve (e.g.
+   `<chapter href="topics/foo.dita">`, and inside `foo.dita`,
+   `<image href="../images/bar.png">`).
+3. That's it. `test_project_roundtrip.py` discovers every subdirectory of
+   `fixtures/projects/`, round-trips every `.dita`/`.ditamap` file inside it
+   individually, and separately checks that every topicref/image `href`
+   still resolves to a real file both before and after the round trip.
+
+### Don't commit real customer content
+
+This is the public, open-source repo. Fixtures here should be synthetic —
+invented content that exercises a DITA construct, like the existing
+fixtures. Don't commit real customer/production DITA here; if you need to
+test against real-world content, do it in a private location instead.
 
 ## Relationship to Xephon CMS
 
