@@ -3,7 +3,11 @@
 Per spec/DITAFLOW-SPEC.md §1 and §8, this registry is *not* required for
 correct round-tripping. An unregistered element still imports and exports
 correctly via ``classChain`` and ``attrs._ext`` — registering it only adds
-attribute validation and editor affordances (allowed children, inline-ness).
+attribute validation and editor affordances (inline-ness). Content-model
+("what can this contain") data lives separately in
+``ditaflow.validator.content_model``, keyed by ``base_element`` rather
+than ``element_name``, since DITA content models are defined once per
+base structural type and specializations inherit them.
 The parser and serializer must treat ``lookup()`` returning ``None`` as
 "generic element", not as an error.
 """
@@ -22,7 +26,6 @@ class SpecialisationEntry:
     module: str
     allows_content: bool
     is_inline: bool
-    allowed_children: tuple[str, ...] | None = None
     attrs_schema: dict[str, Any] | None = None
 
 

@@ -820,9 +820,6 @@ export interface DtfSpecialisationEntry {
   /** Whether children are allowed (block content model) */
   allowsContent: boolean;
 
-  /** Allowed child element names, if constrained */
-  allowedChildren?: string[];
-
   /** Whether this element may appear inline */
   isInline: boolean;
 
