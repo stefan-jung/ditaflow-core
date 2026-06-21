@@ -20,6 +20,22 @@ CHANGELOG.md and git history for that).
       (nested keyscopes across maps, ditavalref chains, conref across
       projects).
 
+## Feature requests from the CMS roadmap (2026-06-21, not yet scoped)
+
+Stefan's feature wishlist for Xephon CMS (see xephon-cms/ROADMAP.md) implies
+one thing that touches the format itself, not just the CMS:
+
+- [ ] **"Variables" (Paligo-style)** — likely already covered by the
+      existing keyref/keydef mechanism (a variable is just a key that
+      resolves to a `<keyword>`/`<ph>` value) rather than a new DTF
+      construct. Needs validating against a real CMS-side "insert
+      variable" UI once that's built, in case there's a gap (e.g.
+      variable sets scoped per-output-channel rather than per-keyscope).
+
+Everything else in that wishlist (project/task management, review
+workflows, multi-tenancy, billing, etc.) is CMS/platform-level and doesn't
+imply a DTF format change — see xephon-cms/ROADMAP.md instead.
+
 ## Deferred / explicitly out of scope for now
 
 - Reusable, named DITAVAL filter profiles as a first-class DTF construct.
