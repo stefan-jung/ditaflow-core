@@ -27,6 +27,7 @@ from typing import Any
 
 from lxml import etree
 
+from ditaflow.converter.class_chain import base_type_from_class_string
 from ditaflow.converter.specialisation_registry import SpecialisationRegistry
 
 DTF_VERSION = "1.0.0"
@@ -236,16 +237,8 @@ class DitaParser:
                     )
                 )
                 class_string = f"- {tag}/{tag} "
-        base_type = self._base_type_from_class_string(class_string)
+        base_type = base_type_from_class_string(class_string)
         return [class_string], base_type
-
-    @staticmethod
-    def _base_type_from_class_string(class_string: str) -> str:
-        body = class_string.strip()
-        if body and body[0] in "+-":
-            body = body[1:].strip()
-        first_pair = body.split(" ", 1)[0] if body else ""
-        return first_pair.split("/", 1)[1] if "/" in first_pair else first_pair
 
     def _split_attrs(self, el: Any, *, promoted: AbstractSet[str] = frozenset()) -> dict[str, Any]:
         tag = etree.QName(el).localname

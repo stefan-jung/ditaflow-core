@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Included by both domain_a.rng and domain_b.rng below: exercises the
+  "same file included via two different paths must not be double-counted"
+  dedup rule (rng_loader.load_shell's `visited_files` set, keyed by
+  resolved real path).
+
+  Also supplies `widget-info-types`, the target of shell.rng's
+  include-nested-define override below.
+-->
+<grammar xmlns="http://relaxng.org/ns/structure/1.0"
+         xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0">
+  <define name="common.attlist">
+    <optional>
+      <attribute name="id"/>
+    </optional>
+  </define>
+  <define name="widget-info-types">
+    <ref name="widget"/>
+  </define>
+</grammar>

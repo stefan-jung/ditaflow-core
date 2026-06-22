@@ -68,6 +68,28 @@ imply a DTF format change — see xephon-cms/ROADMAP.md instead.
   MathML). No XML catalog support (not needed — every vendored grammar
   module resolves via plain relative-path includes). No DITA 2.0 support
   (no public RELAX NG grammar exists for it yet).
+- `ditaflow.grammar` — a RELAX NG grammar introspection compiler deriving
+  a complete, doctype-keyed element/content-model registry directly from
+  the vendored `.rng` files (no hand-curated data): 557 distinct elements
+  across all 18 doctype shells (vs. `specialisation_registry.py`'s
+  previous 83-element hand-curated table, prose + highlight domain only),
+  full ordering/cardinality content models (not just flat allowed-
+  children sets), domain-extension-point detection (`ph`, `keyword`,
+  `term`, ...), a ProseMirror content-expression exporter (with explicit
+  `isApproximate` flagging for the two RELAX NG constructs with no
+  ProseMirror equivalent — `interleave` and foreign/`externalRef`
+  content — confirmed to affect exactly one element, `svg-container`, in
+  the entire vendored set), and a JSON export for the planned xephon-cms
+  schema endpoint. `specialisation_registry.py`'s `lookup()` now consults
+  this registry as its primary source (instance `register()` calls ->
+  manual overrides -> grammar registry -> the original hand-curated
+  table as a last-ditch fallback), fixing confirmed inaccuracies in the
+  hand-curated data along the way (e.g. `keydef` was misclassified as the
+  bare base `topicref` rather than a `mapgroup-d` specialization; `image`
+  was marked content-empty when it genuinely allows an optional
+  `alt`/`longdescref` child) — zero changes needed to `dita_parser.py`/
+  `dita_serializer.py`, whose 3-tier fallback (explicit `@class` ->
+  registry lookup -> opaque synthesis) is unchanged.
 
 ## Known issue (fast-follow, not yet filed as its own task)
 

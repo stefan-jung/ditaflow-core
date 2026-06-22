@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Contributes a second combine="choice" member to the `widget` extension
+  point (so `widget`'s merged pattern is a real 2-member choice, like
+  DITA's `ph` collecting members from every highlight/programming/ui
+  domain), and exercises a two-contribution combine="interleave" attlist
+  (`thingy.attlist`): mirrors the real taskMod.rng `cmd.attlist` shape
+  exactly: one contribution that has no class attribute at all, the other
+  carrying the class default behind an <optional>.
+-->
+<grammar xmlns="http://relaxng.org/ns/structure/1.0"
+         xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0">
+  <include href="shared.rng"/>
+
+  <define name="widget" combine="choice">
+    <ref name="thingy.element"/>
+  </define>
+
+  <define name="thingy.element">
+    <element name="thingy">
+      <ref name="thingy.attlist"/>
+      <ref name="thingy.content"/>
+    </element>
+  </define>
+
+  <define name="thingy.attlist" combine="interleave">
+    <ref name="common.attlist"/>
+  </define>
+
+  <define name="thingy.attlist" combine="interleave">
+    <optional>
+      <attribute name="class" a:defaultValue="- base/thingy "/>
+    </optional>
+  </define>
+
+  <define name="thingy.content">
+    <empty/>
+  </define>
+</grammar>

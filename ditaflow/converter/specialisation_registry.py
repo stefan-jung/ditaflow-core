@@ -10,12 +10,48 @@ than ``element_name``, since DITA content models are defined once per
 base structural type and specializations inherit them.
 The parser and serializer must treat ``lookup()`` returning ``None`` as
 "generic element", not as an error.
+
+``lookup()``'s real source of data, in precedence order, is: (1) entries
+``register()``-ed explicitly on this instance -- an intentional, caller-
+driven override, always honored, never shadowed by anything below; (2)
+``ditaflow.grammar.overrides``'s manual correction table, for the rare
+documented exception; (3) ``ditaflow.grammar.element_registry``'s
+grammar-derived registry, covering 557 elements across every vendored
+domain (vs. this module's own ``_CORE_PROFILE``, 83 elements, prose +
+highlight only) -- and, where they overlap, *more accurate*: e.g.
+``keydef``'s real classChain is a ``mapgroup-d`` specialization of
+``topicref``, not the bare base ``topicref`` ``_CORE_PROFILE`` claims, and
+``image`` genuinely allows an optional ``alt``/``longdescref`` child, not
+the empty content ``_CORE_PROFILE`` claims (confirmed against the real
+grammar while building the grammar registry); (4) ``_CORE_PROFILE``
+itself, kept as a last-ditch fallback for the case the grammar registry
+is somehow unavailable, not deleted. Deliberately *not* preloaded into a
+fresh instance's entries the way it used to be -- doing so would let
+every stale hand-curated record permanently shadow the more-accurate
+grammar registry for every element they overlap on, defeating the point
+of grammar derivation.
+
+The grammar registry is per-doctype
+(``ditaflow.grammar.element_registry.get_registry(doctype)``), but
+``lookup()`` here takes no doctype -- it tries every vendored shell, in
+``element_registry.SHELLS``'s declared order, returning the first hit.
+This is safe because a given element's grammar-derived metadata does not
+vary by which shell happens to include it (the same domain `.rng` file
+contributes the same `class` attribute default regardless of includer,
+confirmed against real data), and cheap because ``get_registry`` is
+process-lifetime cached per doctype -- a doctype shell is compiled at
+most once per process, not once per lookup or per document, however many
+of either there are.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
+
+from ditaflow.grammar.content_model_ast import Empty
+from ditaflow.grammar.element_registry import SHELLS, ElementInfo, get_registry
+from ditaflow.grammar.overrides import lookup_override
 
 
 @dataclass(frozen=True)
@@ -30,27 +66,57 @@ class SpecialisationEntry:
 
 
 class SpecialisationRegistry:
-    """Lookup table from DITA element name to its specialization metadata."""
+    """Lookup table from DITA element name to its specialization metadata.
+
+    See the module docstring for ``lookup()``'s full precedence chain.
+    """
 
     def __init__(self) -> None:
         self._entries: dict[str, SpecialisationEntry] = {}
-        self._register_core_profile()
 
     def register(self, entry: SpecialisationEntry) -> None:
         self._entries[entry.element_name] = entry
 
     def lookup(self, element_name: str) -> SpecialisationEntry | None:
-        return self._entries.get(element_name)
+        if element_name in self._entries:
+            return self._entries[element_name]
+        override = lookup_override(element_name)
+        if override is not None:
+            return override
+        from_grammar = _lookup_in_grammar_registry(element_name)
+        if from_grammar is not None:
+            return from_grammar
+        return _CORE_PROFILE_BY_NAME.get(element_name)
 
     def is_registered(self, element_name: str) -> bool:
-        return element_name in self._entries
+        return self.lookup(element_name) is not None
 
     def __contains__(self, element_name: str) -> bool:
         return self.is_registered(element_name)
 
-    def _register_core_profile(self) -> None:
-        for entry in _CORE_PROFILE:
-            self.register(entry)
+
+def _lookup_in_grammar_registry(element_name: str) -> SpecialisationEntry | None:
+    for doctype in SHELLS:
+        info = get_registry(doctype).get_element_info(element_name)
+        if info is None:
+            continue
+        entry = _element_info_to_specialisation_entry(info)
+        if entry is not None:
+            return entry
+    return None
+
+
+def _element_info_to_specialisation_entry(info: ElementInfo) -> SpecialisationEntry | None:
+    if info.dita_class is None or info.module is None:
+        return None
+    return SpecialisationEntry(
+        element_name=info.element_name,
+        dita_class=info.dita_class,
+        base_element=info.base_element,
+        module=info.module,
+        allows_content=info.content != Empty(),
+        is_inline=info.is_inline,
+    )
 
 
 def _e(
@@ -173,3 +239,5 @@ _CORE_PROFILE: tuple[SpecialisationEntry, ...] = (
     # Branch filtering
     _e("ditavalref", "- map/topicref ditavalref-d/ditavalref ", "topicref", "ditavalref-d"),
 )
+
+_CORE_PROFILE_BY_NAME: dict[str, SpecialisationEntry] = {e.element_name: e for e in _CORE_PROFILE}

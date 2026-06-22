@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Synthetic "doctype" entry point for the grammar package's Tier 1 tests.
+  Includes domain_a.rng and domain_b.rng, both of which separately include
+  shared.rng: exercising the dedup-by-resolved-path rule. Also overrides
+  `widget-info-types` (originally `<ref name="widget"/>` in shared.rng) via
+  an include-nested <define>, mirroring DITA's own `{doctype}-info-types`
+  override mechanism (e.g. topic.rng overriding topic-info-types).
+-->
+<grammar xmlns="http://relaxng.org/ns/structure/1.0"
+         xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0">
+  <start>
+    <ref name="widget"/>
+  </start>
+
+  <include href="domain_a.rng"/>
+
+  <include href="domain_b.rng">
+    <define name="widget-info-types">
+      <ref name="gadget.element"/>
+    </define>
+  </include>
+</grammar>

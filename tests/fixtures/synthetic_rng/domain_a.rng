@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Contributes one combine="choice" member to the `widget` extension point,
+  and exercises a single-contribution, multi-child-group attlist (`gadget.
+  attlist`: a bare <ref> followed by an <optional><attribute> sibling,
+  mirroring real DITA attlist shape like image.attlist).
+-->
+<grammar xmlns="http://relaxng.org/ns/structure/1.0"
+         xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0">
+  <moduleDesc xmlns="http://dita.oasis-open.org/architecture/2005/">
+    <moduleMetadata>
+      <moduleShortName>widget-domain-a</moduleShortName>
+    </moduleMetadata>
+  </moduleDesc>
+  <include href="shared.rng"/>
+
+  <define name="widget" combine="choice">
+    <ref name="gadget.element"/>
+  </define>
+
+  <define name="gadget.element">
+    <element name="gadget">
+      <ref name="gadget.attlist"/>
+      <ref name="gadget.content"/>
+    </element>
+  </define>
+
+  <define name="gadget.attlist">
+    <ref name="common.attlist"/>
+    <optional>
+      <attribute name="class" a:defaultValue="- base/gadget "/>
+    </optional>
+  </define>
+
+  <define name="gadget.content">
+    <empty/>
+  </define>
+</grammar>
