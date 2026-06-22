@@ -9,10 +9,17 @@ an OPTIONAL, approximate content-model check on top, keyed by
 automatically inherit their base element's rules without a separate
 table entry.
 
-This is NOT the official DITA grammar. There is no official RELAX-NG/DTD
-validation here (see ROADMAP.md for that as a planned fast-follow once
-grammar files are sourced) -- an empty error list means "nothing this
-checker knows how to flag is wrong", not "guaranteed valid DITA".
+This is NOT the official DITA grammar. For real RELAX NG validation
+against the official DITA 1.3 grammar, see
+``ditaflow.validator.relaxng_validator.RelaxNgValidator`` -- that module
+operates on serialized XML (a later-stage check against the serializer's
+output), while this one operates on DTF JSON dicts, so they're
+complementary, not redundant: this one is cheap and runs directly on the
+DTF a caller already has in hand, the other is authoritative but requires
+serializing first. An empty error list from *this* checker means "nothing
+this checker knows how to flag is wrong", not "guaranteed valid DITA" --
+only ``RelaxNgValidator`` (or its absence of errors) gives that guarantee,
+and only for the five doctypes it covers.
 
 Lenient by omission: a parent baseType with no entry in
 ``ALLOWED_CHILDREN`` is not checked at all (no false positives for
@@ -23,8 +30,9 @@ yet" stays distinguishable from "forgotten" as the table grows.
 
 Known limitation: checking baseType instead of literal element name means
 this cannot catch e.g. ``<ul><step>...</step></ul>`` -- ``step``'s
-baseType is ``li``, which IS allowed under ``ul``. Only the official DITA
-grammar models nesting at that level of detail.
+baseType is ``li``, which IS allowed under ``ul``. ``RelaxNgValidator``
+models nesting at that level of detail (see its own test suite for this
+exact example).
 """
 
 from __future__ import annotations

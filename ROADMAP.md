@@ -53,3 +53,22 @@ imply a DTF format change — see xephon-cms/ROADMAP.md instead.
 - CLI (`dtf convert|validate|roundtrip`).
 - CI: lint/format/mypy/pytest matrix (3.12/3.13), round-trip job, job
   summaries, codecov upload.
+- `ditaflow.validator.content_model.ContentModelChecker` — approximate,
+  baseType-keyed content-model check on DTF JSON (not the official
+  grammar).
+- `ditaflow.validator.relaxng_validator.RelaxNgValidator` — real RELAX NG
+  validation of serialized DITA XML against the official DITA 1.3 grammar
+  (vendored from dita-ot, Apache-2.0), covering topic/concept/task/
+  reference/map. No XML catalog support (not needed — every vendored
+  grammar module resolves via plain relative-path includes). No DITA 2.0
+  support (no public RELAX NG grammar exists for it yet).
+
+## Known issue (fast-follow, not yet filed as its own task)
+
+- `schema/ditaflow.schema.json` lives outside the `ditaflow` package
+  directory and is located via a `Path(__file__)` parent-walk in
+  `dtf_validator.py` — this only works for an editable (`pip install -e`)
+  install, not a real wheel (confirmed: a built wheel does not contain
+  `schema/ditaflow.schema.json` at all). Move it under `ditaflow/schema/`
+  before the first PyPI release, same fix already applied to the new
+  RELAX NG schemas in `ditaflow/schemas/`.
