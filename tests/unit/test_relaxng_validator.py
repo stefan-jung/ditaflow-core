@@ -39,18 +39,37 @@ def _serialize_fixture(name: str) -> str:
     return DtfSerializer().serialize(document).xml
 
 
-def test_supports_only_the_five_in_scope_doctypes() -> None:
+def test_supports_the_in_scope_doctypes() -> None:
     validator = RelaxNgValidator()
-    for doctype in ("topic", "concept", "task", "reference", "map"):
+    for doctype in (
+        "topic",
+        "concept",
+        "task",
+        "reference",
+        "map",
+        "bookmap",
+        "glossentry",
+        "glossgroup",
+        "troubleshooting",
+        "learningContent",
+        "learningOverview",
+        "learningAssessment",
+        "learningPlan",
+        "learningSummary",
+        "learningMap",
+        "learningGroupMap",
+        "learningObjectMap",
+        "learningBookmap",
+    ):
         assert validator.supports(doctype)
-    for doctype in ("bookmap", "glossentry", "ditavalref", ""):
+    for doctype in ("ditavalref", "subjectScheme", ""):
         assert not validator.supports(doctype)
 
 
 def test_unsupported_doctype_returns_a_descriptive_error_not_a_crash() -> None:
-    result = RelaxNgValidator().validate(_MINIMAL_TOPIC_XML, "bookmap")
+    result = RelaxNgValidator().validate(_MINIMAL_TOPIC_XML, "subjectScheme")
     assert result.is_valid is False
-    assert "bookmap" in result.errors[0]
+    assert "subjectScheme" in result.errors[0]
 
 
 def test_minimal_topic_validates_clean() -> None:
@@ -99,6 +118,45 @@ def test_catches_a_violation_content_model_checker_is_documented_to_miss() -> No
     result = RelaxNgValidator().validate(xml, "topic")
     assert result.is_valid is False
     assert result.errors  # non-empty; exact libxml2 message text isn't load-bearing
+
+
+_MINIMAL_BOOKMAP_XML = """\
+<bookmap class="- map/map bookmap/bookmap " id="b1">
+  <title class="- topic/title bookmap/title ">A book</title>
+</bookmap>"""
+
+_MINIMAL_GLOSSENTRY_XML = """\
+<glossentry class="- topic/topic concept/concept glossentry/glossentry " id="g1">
+  <glossterm class="- topic/keyword glossentry/glossterm ">Widget</glossterm>
+</glossentry>"""
+
+_MINIMAL_TROUBLESHOOTING_XML = """\
+<troubleshooting class="- topic/topic troubleshooting/troubleshooting " id="ts1">
+  <title class="- topic/title ">Won't turn on</title>
+</troubleshooting>"""
+
+_MINIMAL_LEARNING_CONTENT_XML = """\
+<learningContent
+    class="- topic/topic learningBase/learningBase learningContent/learningContent "
+    id="lc1">
+  <title class="- topic/title ">Lesson 1</title>
+  <learningContentbody
+      class="- topic/body learningBase/learningBase-body learningContentbody/learningContentbody "/>
+</learningContent>"""
+
+
+@pytest.mark.parametrize(
+    ("xml", "doctype"),
+    [
+        (_MINIMAL_BOOKMAP_XML, "bookmap"),
+        (_MINIMAL_GLOSSENTRY_XML, "glossentry"),
+        (_MINIMAL_TROUBLESHOOTING_XML, "troubleshooting"),
+        (_MINIMAL_LEARNING_CONTENT_XML, "learningContent"),
+    ],
+)
+def test_minimal_expanded_domain_fixtures_validate_clean(xml: str, doctype: str) -> None:
+    result = RelaxNgValidator().validate(xml, doctype)
+    assert result.errors == [], f"{doctype}: {result.errors}"
 
 
 def test_invalid_nesting_inside_a_simpletable_is_caught() -> None:

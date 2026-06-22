@@ -34,7 +34,7 @@ def test_built_wheel_contains_the_vendored_relaxng_schemas() -> None:
         with zipfile.ZipFile(wheels[0]) as wheel:
             names = wheel.namelist()
         rng_files = [n for n in names if n.endswith(".rng")]
-        assert len(rng_files) >= 70, f"expected ~73 vendored .rng files, found {len(rng_files)}"
+        assert len(rng_files) >= 100, f"expected ~105 vendored .rng files, found {len(rng_files)}"
         assert any(n.endswith("topic.rng") for n in rng_files)
         assert any(n.endswith("map.rng") for n in rng_files)
         assert any("LICENSE-DITA-OT.txt" in n for n in names)

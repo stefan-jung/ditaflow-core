@@ -59,9 +59,15 @@ imply a DTF format change — see xephon-cms/ROADMAP.md instead.
 - `ditaflow.validator.relaxng_validator.RelaxNgValidator` — real RELAX NG
   validation of serialized DITA XML against the official DITA 1.3 grammar
   (vendored from dita-ot, Apache-2.0), covering topic/concept/task/
-  reference/map. No XML catalog support (not needed — every vendored
-  grammar module resolves via plain relative-path includes). No DITA 2.0
-  support (no public RELAX NG grammar exists for it yet).
+  reference/map/bookmap/glossentry/glossgroup/troubleshooting/learning*
+  (8 learning shells: Content/Overview/Assessment/Plan/Summary/Map/
+  GroupMap/ObjectMap, plus learningBookmap). 105 vendored `.rng` files
+  total (up from 71 -- see ditaflow/schemas/dita1.3/LICENSE-DITA-OT.txt
+  for the two narrow, documented deviations from the upstream files, both
+  the same libxml2/RNG interoperability gap already hit once before with
+  MathML). No XML catalog support (not needed — every vendored grammar
+  module resolves via plain relative-path includes). No DITA 2.0 support
+  (no public RELAX NG grammar exists for it yet).
 
 ## Known issue (fast-follow, not yet filed as its own task)
 

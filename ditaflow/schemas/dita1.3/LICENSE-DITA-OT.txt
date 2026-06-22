@@ -1,26 +1,43 @@
 The RELAX NG schema files vendored under this directory (base/, technicalContent/,
-including the third-party SVG 1.1 RELAX NG modules technicalContent/ transitively
-includes) are taken verbatim from the DITA Open Toolkit project:
+bookmap/, learning/, xnal/, including the third-party SVG 1.1 RELAX NG modules
+technicalContent/ transitively includes) are taken verbatim from the DITA Open
+Toolkit project:
 
     https://github.com/dita-ot/dita-ot
-    Path: src/main/plugins/org.oasis-open.dita.v1_3/rng/{base,technicalContent}/
+    Path: src/main/plugins/org.oasis-open.dita.v1_3/rng/
+          {base,technicalContent,bookmap,learning,xnal}/
 
 DITA-OT is licensed under the Apache License, Version 2.0, reproduced below.
-No modifications have been made to the vendored .rng files themselves, with one
-exception: each doctype shell's `<include href="mathmlDomain.rng">` line has been
-removed (topic.rng, concept.rng, generalTask.rng, task.rng, reference.rng), and
-mathmlDomain.rng/mathmlDomainProxy.rng plus the MathML 3 RELAX NG modules they
-include are not vendored at all. Reason: mathmlDomainProxy.rng's <include> override
-of the `anyElement` define is not accepted by libxml2's RELAX NG parser (a known
-class of interoperability gap between RNG processors on deeply nested include/
-override combinations -- unrelated to DITA's own grammar), and ditaflow-core's
-scope does not produce MathML foreign content regardless. Pruned files not
-transitively reachable from the topic/concept/generalTask/task/reference/map
-shells after that removal (ditabase.rng and its glossary/troubleshooting-related
-dependents, taskreqDomain.rng, three never-referenced SVG 1.1 modules) were also
-left out to keep this vendored copy minimal and fully functional -- see
-ditaflow/validator/relaxng_validator.py's module docstring for the doctype/shell
-mapping this enables.
+No modifications have been made to the vendored .rng files themselves, with two
+exceptions, both the same class of libxml2/RELAX NG interoperability gap on
+`<include>` overrides whose target define exists only transitively (via the
+included file's own nested `<include>`), not literally inside the immediately
+included file -- valid per RELAX NG's spec semantics, but rejected by libxml2:
+
+  1. Each doctype shell's `<include href="mathmlDomain.rng">` line has been
+     removed (topic.rng, concept.rng, generalTask.rng, task.rng, reference.rng,
+     glossentry.rng, glossgroup.rng, troubleshooting.rng), and
+     mathmlDomain.rng/mathmlDomainProxy.rng plus the MathML 3 RELAX NG modules
+     they include are not vendored at all. ditaflow-core's scope does not
+     produce MathML foreign content regardless.
+  2. troubleshooting.rng's `<include href="strictTaskbodyConstraintMod.rng">`
+     override of `task-info-types` has been removed (the file is now included
+     plainly). This only affects the rarely-used multi-topic-per-file nesting
+     mechanism (which `task-info-types` governs for `<task>`'s own content
+     model) -- ditaflow-core's DTF format is one-doctype-per-document and never
+     exercises that mechanism, so the only practical effect is a slightly more
+     permissive (not stricter) constraint in this one narrow, unused corner.
+
+Files not transitively reachable from the topic/concept/generalTask/task/
+reference/map/bookmap/glossentry/glossgroup/troubleshooting/learning* shells
+(ditabase.rng, basemap.rng, basetopic.rng, taskreqDomain.rng, three
+never-referenced SVG 1.1 modules, two never-referenced learning "no learning"
+constraint modules) were left out to keep this vendored copy minimal and fully
+functional -- see ditaflow/validator/relaxng_validator.py's module docstring
+for the doctype/shell mapping this enables. One exception kept despite being
+unreferenced: technicalContent/rng/task.rng (the strict task shell -- this
+package uses generalTask.rng instead, see relaxng_validator.py's docstring),
+predates this vendoring pass and is left in place rather than re-litigated.
 
 ================================================================================
 

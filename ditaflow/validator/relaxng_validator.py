@@ -1,9 +1,15 @@
 """Validates serialized DITA XML against the official DITA 1.3 RELAX NG
 grammars vendored from dita-ot (Apache-2.0; see
-ditaflow/schemas/dita1.3/LICENSE-DITA-OT.txt for provenance and the one
-deliberate deviation from the upstream files -- the MathML domain include,
-removed because of a libxml2/RNG interoperability gap unrelated to DITA
-content this library produces).
+ditaflow/schemas/dita1.3/LICENSE-DITA-OT.txt for provenance and the
+deliberate deviations from the upstream files -- the MathML domain
+include (removed from topic/glossentry/glossgroup/troubleshooting) and
+troubleshooting.rng's task-info-types override (removed), both because of
+the same libxml2/RNG interoperability gap: libxml2 rejects an `<include>`
+override whose target define is only present in the included grammar
+*transitively* (via that file's own nested `<include>`), even though
+that's valid per RELAX NG's spec semantics. Neither deviation is
+DITA-content-relevant -- see the package's LICENSE-DITA-OT.txt for the
+full per-file note.
 
 Unlike DtfValidator (JSON Schema, structural) and ContentModelChecker
 (hand-written, baseType-keyed approximation), this validator operates on
@@ -51,6 +57,19 @@ _SHELLS: dict[str, str] = {
     "task": "technicalContent/rng/generalTask.rng",
     "reference": "technicalContent/rng/reference.rng",
     "map": "technicalContent/rng/map.rng",
+    "bookmap": "bookmap/rng/bookmap.rng",
+    "glossentry": "technicalContent/rng/glossentry.rng",
+    "glossgroup": "technicalContent/rng/glossgroup.rng",
+    "troubleshooting": "technicalContent/rng/troubleshooting.rng",
+    "learningContent": "learning/rng/learningContent.rng",
+    "learningOverview": "learning/rng/learningOverview.rng",
+    "learningAssessment": "learning/rng/learningAssessment.rng",
+    "learningPlan": "learning/rng/learningPlan.rng",
+    "learningSummary": "learning/rng/learningSummary.rng",
+    "learningMap": "learning/rng/learningMap.rng",
+    "learningGroupMap": "learning/rng/learningGroupMap.rng",
+    "learningObjectMap": "learning/rng/learningObjectMap.rng",
+    "learningBookmap": "learning/rng/learningBookmap.rng",
 }
 
 
