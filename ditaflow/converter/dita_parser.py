@@ -353,6 +353,19 @@ class DitaParser:
         entry = self.registry.lookup(tag)
         return entry is not None and entry.base_element == "topicref"
 
+    # bookmeta (bookmap) is a real map/topicmeta specialization (confirmed:
+    # class="- map/topicmeta bookmap/bookmeta "), so it belongs in the same
+    # `topicmeta` DTF field a plain map's <topicmeta> uses -- the serializer
+    # round-trips it correctly either way since it re-emits whatever literal
+    # tag was captured in `type` (see _named_field_to_element).
+    def _looks_like_topicmeta(self, el: Any) -> bool:
+        tag = etree.QName(el).localname
+        class_attr = el.get("class")
+        if class_attr:
+            return "map/topicmeta" in class_attr
+        entry = self.registry.lookup(tag)
+        return entry is not None and entry.base_element == "topicmeta"
+
     # -- Image -------------------------------------------------------------
 
     def _convert_image(self, el: Any) -> dict[str, Any]:
@@ -448,7 +461,14 @@ class DitaParser:
             child_tag = etree.QName(child).localname
             if child_tag == "title":
                 node["title"] = self._convert_mixed_content(child)
-            elif child_tag == "topicmeta":
+            elif child_tag == "booktitle":
+                # bookmap's title alternative: structured children
+                # (mainbooktitle/booktitlealt/booklibrary), not bare mixed
+                # text like plain <title> -- its own field rather than
+                # forcing it through `_convert_mixed_content`, which would
+                # flatten that structure away.
+                node["booktitle"] = self._convert_simple_named(child)
+            elif child_tag == "topicmeta" or self._looks_like_topicmeta(child):
                 node["topicmeta"] = self._convert_simple_named(child)
             elif child_tag == "reltable":
                 reltables.append(self._convert_reltable(child))

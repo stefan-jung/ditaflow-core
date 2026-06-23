@@ -39,6 +39,11 @@ def _is_topicref_shaped(node: dict[str, Any]) -> bool:
     return "map/topicref" in class_chain[0]
 
 
+def _is_bookmap_shaped(node: dict[str, Any]) -> bool:
+    class_chain = node.get("classChain") or [""]
+    return "bookmap/bookmap" in class_chain[0]
+
+
 ATTR_ORDER: list[str] = [
     "id",
     "conref",
@@ -310,14 +315,28 @@ class DtfSerializer:
             title_el = etree.SubElement(el, "title")
             title_el.set("class", "- map/title ")
             self._append_content(title_el, node["title"])
+        if node.get("booktitle"):
+            el.append(self._named_field_to_element(node["booktitle"]))
         if node.get("topicmeta"):
             el.append(self._named_field_to_element(node["topicmeta"]))
         for keydef in node.get("keydefs", []):
             el.append(self._topicref_node_to_element(keydef))
-        for reltable in node.get("reltables", []):
-            el.append(self._reltable_to_element(reltable))
-        for topicref in node.get("topicrefs", []):
-            el.append(self._topicref_node_to_element(topicref))
+        if _is_bookmap_shaped(node):
+            # bookmap.content requires reltable* strictly last, after every
+            # frontmatter/chapter/part/appendix/backmatter division
+            # (confirmed against the vendored grammar) -- the reverse of
+            # the order used below, which is harmless for plain map since
+            # map.content freely interleaves reltable/topicref with no
+            # fixed relative position required.
+            for topicref in node.get("topicrefs", []):
+                el.append(self._topicref_node_to_element(topicref))
+            for reltable in node.get("reltables", []):
+                el.append(self._reltable_to_element(reltable))
+        else:
+            for reltable in node.get("reltables", []):
+                el.append(self._reltable_to_element(reltable))
+            for topicref in node.get("topicrefs", []):
+                el.append(self._topicref_node_to_element(topicref))
         return el
 
     # -- Topicref tree --------------------------------------------------

@@ -89,6 +89,7 @@ def test_minimal_map_validates_clean() -> None:
         ("concept_with_conref.dita", "concept"),
         ("reference_with_tables.dita", "reference"),
         ("simple_task.dita", "task"),
+        ("bookmap_with_bookmeta_and_divisions.dita", "bookmap"),
     ],
 )
 def test_real_fixtures_round_tripped_through_the_serializer_validate_clean(

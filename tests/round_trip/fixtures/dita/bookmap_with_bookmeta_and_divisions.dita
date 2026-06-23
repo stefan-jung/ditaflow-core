@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bookmap id="product-manual" xml:lang="en-US">
+  <booktitle>
+    <mainbooktitle>Product Manual</mainbooktitle>
+  </booktitle>
+  <bookmeta>
+    <author>Jane Doe</author>
+  </bookmeta>
+  <frontmatter>
+    <preface><topicref href="preface.dita"/></preface>
+  </frontmatter>
+  <chapter href="ch1.dita"/>
+  <chapter href="ch2.dita"/>
+  <appendix href="app1.dita"/>
+  <backmatter>
+    <notices/>
+  </backmatter>
+  <reltable>
+    <relheader>
+      <relcolspec/>
+      <relcolspec/>
+    </relheader>
+    <relrow>
+      <relcell><topicref href="ch1.dita"/></relcell>
+      <relcell><topicref href="ch2.dita"/></relcell>
+    </relrow>
+  </reltable>
+</bookmap>
