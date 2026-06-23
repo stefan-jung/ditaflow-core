@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map id="product-map" xml:lang="en-US">
+  <title>Product map</title>
+  <topicmeta>
+    <navtitle>Product Documentation</navtitle>
+  </topicmeta>
+  <keydef keys="prodname" href="topics/glossary.dita"/>
+  <topicgroup>
+    <topicref href="topics/overview.dita"/>
+    <topicref href="topics/installation.dita"/>
+  </topicgroup>
+  <topichead navtitle="Reference">
+    <topicref href="topics/reference-a.dita"/>
+    <topicref href="topics/reference-b.dita"/>
+  </topichead>
+  <reltable>
+    <relheader>
+      <relcolspec/>
+      <relcolspec/>
+    </relheader>
+    <relrow>
+      <relcell><topicref href="topics/overview.dita"/></relcell>
+      <relcell><topicref href="topics/installation.dita"/></relcell>
+    </relrow>
+  </reltable>
+</map>

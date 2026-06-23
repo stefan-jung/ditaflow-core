@@ -20,6 +20,25 @@ from ditaflow.converter.specialisation_registry import SpecialisationRegistry
 
 XML_NS_LANG = "{http://www.w3.org/XML/1998/namespace}lang"
 
+
+# A topicref (or any specialization: topicgroup/topichead/keydef/chapter/...)
+# can legitimately appear inside otherwise-generic mixed content -- most
+# commonly a <relcell>'s content (a relationship table's whole purpose is
+# linking real topicrefs into a cell) or a table entry. dita_parser.py's
+# `_convert_mixed_content` already gives such a nested element the same
+# promoted-field treatment (href/keys/keyscope/children, not plain attrs) as
+# a top-level topicref -- see `_looks_like_topicref` there -- so the reverse
+# direction must route it to `_topicref_node_to_element`, not the generic
+# `_element_node_to_element`, or those promoted fields are silently dropped
+# (confirmed: a relcell's <topicref href="..."/> lost its href entirely
+# before this check existed). classChain is always present on a DTF node by
+# construction, so -- unlike the parser, which may have only a bare XML
+# element to work from -- no registry lookup is needed here.
+def _is_topicref_shaped(node: dict[str, Any]) -> bool:
+    class_chain = node.get("classChain") or [""]
+    return "map/topicref" in class_chain[0]
+
+
 ATTR_ORDER: list[str] = [
     "id",
     "conref",
@@ -183,6 +202,9 @@ class DtfSerializer:
                 parent_el.append(last_child)
             elif ntype == "simpletable":
                 last_child = self._simpletable_node_to_element(node)
+                parent_el.append(last_child)
+            elif _is_topicref_shaped(node):
+                last_child = self._topicref_node_to_element(node)
                 parent_el.append(last_child)
             else:
                 last_child = self._element_node_to_element(node)
