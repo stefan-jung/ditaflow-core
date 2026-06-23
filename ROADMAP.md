@@ -23,7 +23,7 @@ CHANGELOG.md and git history for that).
 ## Feature requests from the CMS roadmap (2026-06-21, not yet scoped)
 
 Stefan's feature wishlist for Xephon CMS (see xephon-cms/ROADMAP.md) implies
-one thing that touches the format itself, not just the CMS:
+two things that touch the format/grammar layer itself, not just the CMS:
 
 - [ ] **"Variables" (Paligo-style)** — likely already covered by the
       existing keyref/keydef mechanism (a variable is just a key that
@@ -31,10 +31,23 @@ one thing that touches the format itself, not just the CMS:
       construct. Needs validating against a real CMS-side "insert
       variable" UI once that's built, in case there's a gap (e.g.
       variable sets scoped per-output-channel rather than per-keyscope).
+- [ ] **Multi-grammar / custom type platform** (added 2026-06-22) — a much
+      bigger ask than the item above: generalize beyond DITA's Map/Topic
+      shape entirely (DTF and `ditaflow/grammar/` are both DITA-shaped by
+      design today), support JSON Schema/XML DTD/XSD as alternative ways
+      to *define* a structure (today: RELAX NG only, see Done below),
+      support alternative XML grammars (S1000D named explicitly) and
+      arbitrary customer-specific grammars, and back a Wrike-style builder
+      (base primitive types → user-derived custom types with custom
+      workflows/properties via a visual editor). See xephon-cms/ROADMAP.md's
+      "Multi-grammar content platform / custom type builder" entry for the
+      full requirement set — this line just flags that it lands here too.
+      Not scoped, not started; needs an explicit scope/sequencing
+      conversation with Stefan before any design work begins.
 
 Everything else in that wishlist (project/task management, review
 workflows, multi-tenancy, billing, etc.) is CMS/platform-level and doesn't
-imply a DTF format change — see xephon-cms/ROADMAP.md instead.
+imply a DTF/grammar format change — see xephon-cms/ROADMAP.md instead.
 
 ## Deferred / explicitly out of scope for now
 
