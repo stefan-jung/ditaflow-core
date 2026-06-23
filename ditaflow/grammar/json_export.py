@@ -65,6 +65,7 @@ def _element_info_to_json_dict(info: ElementInfo) -> dict[str, Any]:
     prosemirror = to_content_expression(info.content)
     return {
         "elementName": info.element_name,
+        "longName": info.long_name,
         "ditaClass": info.dita_class,
         "baseElement": info.base_element,
         "module": info.module,

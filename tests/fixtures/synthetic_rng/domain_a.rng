@@ -6,7 +6,8 @@
   mirroring real DITA attlist shape like image.attlist).
 -->
 <grammar xmlns="http://relaxng.org/ns/structure/1.0"
-         xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0">
+         xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0"
+         xmlns:dita="http://dita.oasis-open.org/architecture/2005/">
   <moduleDesc xmlns="http://dita.oasis-open.org/architecture/2005/">
     <moduleMetadata>
       <moduleShortName>widget-domain-a</moduleShortName>
@@ -19,7 +20,7 @@
   </define>
 
   <define name="gadget.element">
-    <element name="gadget">
+    <element name="gadget" dita:longName="Gadget Widget">
       <ref name="gadget.attlist"/>
       <ref name="gadget.content"/>
     </element>

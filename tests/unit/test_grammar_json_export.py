@@ -88,6 +88,7 @@ class TestElementAndRegistryShapeTier1:
         encoded = registry_to_json_dict(registry)
         b = encoded["elements"]["b"]
         assert b["elementName"] == "b"
+        assert b["longName"] == "Bold"
         assert b["ditaClass"] == "+ topic/ph hi-d/b "
         assert b["baseElement"] == "ph"
         assert b["module"] == "hi-d"

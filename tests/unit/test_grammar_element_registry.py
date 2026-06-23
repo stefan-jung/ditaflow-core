@@ -53,6 +53,12 @@ class TestSyntheticTier1:
         assert gadget.dita_class == "- base/gadget "
         assert gadget.base_element == "gadget"
         assert gadget.module == "widget-domain-a"
+        assert gadget.long_name == "Gadget Widget"
+
+    def test_long_name_absent_degrades_to_none(self, synthetic_registry):
+        # thingy.element carries no dita:longName -- absence must degrade
+        # cleanly, not raise or fabricate a value.
+        assert synthetic_registry.get_element_info("thingy").long_name is None
 
     def test_class_default_found_through_interleaved_contributions(self, synthetic_registry):
         # thingy.attlist is combine="interleave" of two contributions; the
@@ -107,12 +113,46 @@ class TestRealGrammarTier2:
         assert b.base_element == "ph"
         assert b.module == "hi-d"
         assert b.is_inline is True
+        assert b.long_name == "Bold"
 
     def test_base_block_element_not_inline(self):
         p = get_registry("topic").get_element_info("p")
         assert p.dita_class == "- topic/p "
         assert p.base_element == "p"
         assert p.is_inline is False
+
+    def test_long_name_extracted_across_dita_arch_namespace_prefix_variants(self):
+        # The dita:longName/ditaarch:longName/a:longName variance is real
+        # (different vendored files bind different prefixes to the same
+        # namespace) -- "uicontrol" specifically lives in a file using a
+        # different prefix than "b"/"cmd" do, so covering it here catches
+        # a namespace-URI lookup regression a single example wouldn't.
+        registry = get_registry("task")
+        assert registry.get_element_info("uicontrol").long_name == "User Interface Control"
+        assert registry.get_element_info("cmd").long_name == "Command"
+
+    def test_long_name_coverage_is_high_in_practice(self):
+        # Unlike dita_class, NOT 100% in practice -- confirmed, narrow
+        # upstream gaps in the real vendored grammars (not a bug in this
+        # module): e.g. mapGroupDomain.rng's topichead/topicgroup/
+        # anchorref/topicset/topicsetref/keydef carry no longName
+        # attribute under any prefix at all; ditavalrefDomain.rng's
+        # ditavalmeta/dvrResource*/dvrKeyscope* use a literal "a:longName"
+        # prefix that in *that* file is bound to the RNG annotations
+        # namespace, not the DITA architecture one; the learning domain's
+        # IEEE LOM metadata elements (lcLom/lomStructure/...) skip it
+        # entirely. A coverage *ratio* threshold, not an exact count, is
+        # the honest assertion here -- the worst real shell measured
+        # (learningMap) is ~85%; 80% comfortably bounds that without
+        # being a brittle exact-count tripwire, while still catching a
+        # real regression (e.g. the namespace-URI lookup breaking
+        # entirely, which would crater every shell to ~0%).
+        for doctype in SHELLS:
+            registry = get_registry(doctype)
+            total = len(registry.elements)
+            with_long_name = sum(1 for info in registry.elements.values() if info.long_name)
+            ratio = with_long_name / total
+            assert ratio >= 0.8, f"{doctype}: long_name coverage too low: {ratio:.2%}"
 
     def test_ph_extension_point_covers_known_highlight_members(self):
         members = get_registry("topic").get_extension_point_members("ph")

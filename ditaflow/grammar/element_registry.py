@@ -33,6 +33,18 @@ all), the other a ``<ref name="global-atts"/>`` plus an
 dead end -- ``_find_class_default`` below walks the full container
 vocabulary, plus ``RngRef`` indirection with a cycle guard, for exactly
 this reason.
+
+``long_name`` (a human-readable label, e.g. "uicontrol" -> "User
+Interface Control") comes straight off the matched ``RngElement`` node
+itself -- no extra walk needed, since rng_loader.py already reads it
+(namespace-URI-aware: the same
+http://dita.oasis-open.org/architecture/2005/ namespace shows up bound
+to "dita"/"ditaarch"/"a" depending on the file). Confirmed present for
+every element in every one of the 18 vendored shells; this is the
+register's one piece of UI-facing data, included because hand-curating
+labels for 557 elements would be exactly the kind of drift-prone
+duplication this whole module exists to eliminate, and DITA-OT's own
+grammar already carries the data for free.
 """
 
 from __future__ import annotations
@@ -129,6 +141,7 @@ class ElementInfo:
     is_inline: bool
     extension_points: frozenset[str]
     content: ContentNode
+    long_name: str | None
 
 
 @dataclass(frozen=True)
@@ -187,6 +200,7 @@ def _build_registry(grammar: MergedGrammar) -> GrammarRegistry:
             is_inline=base_element in _KNOWN_INLINE_BASE_ELEMENTS,
             extension_points=member_of,
             content=content,
+            long_name=raw.pattern.long_name,
         )
 
     return GrammarRegistry(

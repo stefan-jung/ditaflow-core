@@ -38,6 +38,7 @@ class RngRef(RngPattern):
 class RngElement(RngPattern):
     tag_name: str
     child: RngPattern
+    long_name: str | None = None
 
 
 @dataclass(frozen=True)

@@ -105,7 +105,17 @@ def _parse_pattern(el: etree._Element) -> RngPattern:
     if name == "ref":
         return RngRef(name=el.get("name", ""))
     if name == "element":
-        return RngElement(tag_name=el.get("name", ""), child=_parse_single_child_pattern(el))
+        # Looked up by namespace URI, not by literal prefix -- confirmed
+        # real: different vendored files bind the same
+        # http://dita.oasis-open.org/architecture/2005/ namespace to
+        # different prefixes ("dita:longName" in most files, but
+        # "ditaarch:longName"/"a:longName" elsewhere), all meaning the
+        # same attribute.
+        return RngElement(
+            tag_name=el.get("name", ""),
+            child=_parse_single_child_pattern(el),
+            long_name=el.get(f"{{{_DITA_ARCH_NS}}}longName"),
+        )
     if name == "attribute":
         default_value = el.get(f"{{{_ANNOTATIONS_NS}}}defaultValue")
         return RngAttribute(attr_name=el.get("name", ""), default_value=default_value)
