@@ -89,7 +89,20 @@ imply a DTF format change — see xephon-cms/ROADMAP.md instead.
   was marked content-empty when it genuinely allows an optional
   `alt`/`longdescref` child) — zero changes needed to `dita_parser.py`/
   `dita_serializer.py`, whose 3-tier fallback (explicit `@class` ->
-  registry lookup -> opaque synthesis) is unchanged.
+  registry lookup -> opaque synthesis) is unchanged. `prosemirror_export.py`
+  gained an opt-in inline/block-mixing guard (`prefer_inline`/`classify`/
+  `has_members`, used by `json_export.py`): found via a live xephon-cms
+  editor crash, roughly half of the registry's generic long-tail elements
+  mix "universal" carrier elements (`data`/`foreign`/`object`/...) with
+  inline phrase content in one content model — valid in DITA's real
+  grammar, but ProseMirror requires a node's content to be uniformly
+  inline or block, so the mismatched side is dropped and the result
+  flagged `isApproximate`, the same never-silently-wrong treatment already
+  given to `interleave`/foreign content. Two related, narrower traps fixed
+  alongside it: a real `<text>` element whose tag name collides with
+  ProseMirror's own reserved inline text-node token, and RELAX NG combine
+  points that are valid but have zero concrete members in one particular
+  doctype's grammar (e.g. glossgroup's `glossentry-info-types`).
 
 ## Known issue (fast-follow, not yet filed as its own task)
 

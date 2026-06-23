@@ -156,6 +156,22 @@ class GrammarRegistry:
     def get_extension_point_members(self, name: str) -> frozenset[str]:
         return self.extension_points.get(name, frozenset())
 
+    def classify_inline(self, name: str) -> bool:
+        """Classifies a content-model token -- an element name or an
+        extension-point name -- as inline or block, for
+        prosemirror_export.py's inline/block-mixing guard (see
+        json_export.py, the only caller). An element name resolves via its
+        own `is_inline`; anything else (an extension-point name, e.g.
+        "ph") resolves via `_KNOWN_INLINE_BASE_ELEMENTS` directly, since an
+        extension point's members all share its own base element's
+        inline-ness by construction -- the same allowlist `is_inline`
+        itself derives from.
+        """
+        element = self.elements.get(name)
+        if element is not None:
+            return element.is_inline
+        return name in _KNOWN_INLINE_BASE_ELEMENTS
+
 
 @lru_cache(maxsize=len(SHELLS))
 def get_registry(doctype: str) -> GrammarRegistry:

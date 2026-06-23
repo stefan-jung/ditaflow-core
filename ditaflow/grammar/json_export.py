@@ -53,7 +53,8 @@ def registry_to_json_dict(registry: GrammarRegistry) -> dict[str, Any]:
     return {
         "doctype": registry.doctype,
         "elements": {
-            name: _element_info_to_json_dict(info) for name, info in registry.elements.items()
+            name: _element_info_to_json_dict(info, registry)
+            for name, info in registry.elements.items()
         },
         "extensionPoints": {
             name: sorted(members) for name, members in registry.extension_points.items()
@@ -61,8 +62,23 @@ def registry_to_json_dict(registry: GrammarRegistry) -> dict[str, Any]:
     }
 
 
-def _element_info_to_json_dict(info: ElementInfo) -> dict[str, Any]:
-    prosemirror = to_content_expression(info.content)
+def _element_info_to_json_dict(info: ElementInfo, registry: GrammarRegistry) -> dict[str, Any]:
+    # prefer_inline/classify: see prosemirror_export.py's module docstring
+    # ("A fourth ... case") -- ProseMirror can't mix inline and block
+    # references in one content expression the way DITA's real grammar
+    # can, so this drops whichever side doesn't match the element's own
+    # is_inline, flagging the result approximate rather than letting a
+    # mixed expression reach the frontend and fail schema construction.
+    # has_members similarly drops a reference to an extension point with
+    # no real members in *this* doctype's grammar (e.g. glossgroup's
+    # "glossentry-info-types") -- same dangling-reference failure mode,
+    # different cause.
+    prosemirror = to_content_expression(
+        info.content,
+        prefer_inline=info.is_inline,
+        classify=registry.classify_inline,
+        has_members=lambda name: len(registry.get_extension_point_members(name)) > 0,
+    )
     return {
         "elementName": info.element_name,
         "longName": info.long_name,
