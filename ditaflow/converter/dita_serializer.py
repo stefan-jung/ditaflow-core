@@ -44,6 +44,23 @@ def _is_bookmap_shaped(node: dict[str, Any]) -> bool:
     return "bookmap/bookmap" in class_chain[0]
 
 
+# entityRef content nodes (see dita_parser.py's _is_entity_ref) can appear
+# anywhere mixed content can -- title, shortdesc, a topicref's topicmeta,
+# deep inside body/section/p, etc. -- so this walks every dict/list value
+# generically rather than enumerating each of those fields, mirroring how
+# _append_content's own dispatch already treats content recursively without
+# caring which named field it came from.
+def _collect_entity_refs(value: Any, out: set[str]) -> None:
+    if isinstance(value, dict):
+        if value.get("type") == "entityRef":
+            out.add(value["name"])
+        for v in value.values():
+            _collect_entity_refs(v, out)
+    elif isinstance(value, list):
+        for item in value:
+            _collect_entity_refs(item, out)
+
+
 ATTR_ORDER: list[str] = [
     "id",
     "conref",
@@ -115,7 +132,11 @@ class DtfSerializer:
 
         self._fill_indentation(root_el)
 
-        doctype = self._build_doctype(document.get("meta", {}).get("doctypeDecl"))
+        entity_names: set[str] = set()
+        _collect_entity_refs(root_node, entity_names)
+        doctype = self._build_doctype(
+            document.get("meta", {}).get("doctypeDecl"), entity_names, root_node["type"]
+        )
         if doctype is not None:
             xml_bytes = etree.tostring(
                 root_el, xml_declaration=True, encoding="UTF-8", doctype=doctype
@@ -125,17 +146,39 @@ class DtfSerializer:
         return DtfExportResult(xml=xml_bytes.decode("utf-8"))
 
     @staticmethod
-    def _build_doctype(decl: dict[str, Any] | None) -> str | None:
+    def _build_doctype(
+        decl: dict[str, Any] | None, entity_names: set[str], root_tag: str
+    ) -> str | None:
+        # Entity references (entityRef content nodes -- see dita_parser.py's
+        # _is_entity_ref) are only well-formed XML when something declares
+        # them; the resolved value was never captured in DTF in the first
+        # place (resolve_entities=False on import -- see parse_string), so
+        # re-declaring each with an empty placeholder value here is enough
+        # to make the *structure* (the reference itself) round-trip and
+        # stay parseable, without needing to know what the entity actually
+        # expands to. Needed even when no doctypeDecl was captured at all:
+        # confirmed real-world content (the Oxygen XML User Guide corpus)
+        # has entity references declared only in an external DTD that this
+        # serializer never reads -- not declaring them here would silently
+        # reintroduce the "undefined entity" parse failure entityRef was
+        # added to avoid in the first place.
+        internal_subset = (
+            " [" + "".join(f'<!ENTITY {name} "">' for name in sorted(entity_names)) + "]"
+            if entity_names
+            else ""
+        )
         if not decl:
-            return None
+            if not entity_names:
+                return None
+            return f"<!DOCTYPE {root_tag}{internal_subset}>"
         name = decl["name"]
         public_id = decl.get("publicId")
         system_id = decl.get("systemId")
         if public_id and system_id:
-            return f'<!DOCTYPE {name} PUBLIC "{public_id}" "{system_id}">'
+            return f'<!DOCTYPE {name} PUBLIC "{public_id}" "{system_id}"{internal_subset}>'
         if system_id:
-            return f'<!DOCTYPE {name} SYSTEM "{system_id}">'
-        return f"<!DOCTYPE {name}>"
+            return f'<!DOCTYPE {name} SYSTEM "{system_id}"{internal_subset}>'
+        return f"<!DOCTYPE {name}{internal_subset}>"
 
     @staticmethod
     def _fill_indentation(el: Any, depth: int = 0) -> None:
@@ -195,6 +238,9 @@ class DtfSerializer:
                 parent_el.append(last_child)
             elif ntype == "pi":
                 last_child = etree.ProcessingInstruction(node["target"], node.get("data") or "")
+                parent_el.append(last_child)
+            elif ntype == "entityRef":
+                last_child = etree.Entity(node["name"])
                 parent_el.append(last_child)
             elif ntype == "conref":
                 last_child = self._conref_node_to_element(node)
@@ -257,6 +303,7 @@ class DtfSerializer:
             if node.get(field_name):
                 el.set(attr_name, node[field_name])
         self._set_attrs(el, node.get("attrs", {}))
+        self._append_content(el, node.get("content", []))
         return el
 
     def _image_node_to_element(self, node: dict[str, Any]) -> Any:

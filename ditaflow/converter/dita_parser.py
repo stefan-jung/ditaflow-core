@@ -113,6 +113,16 @@ def _is_pi(el: Any) -> bool:
     return not isinstance(el.tag, str) and el.tag is etree.PI
 
 
+# An unresolved internal/external entity reference (e.g. "&OXYGEN_MINOR;"
+# inside a DOCTYPE-declared entity, common in real-world DITA content) --
+# this parser's XMLParser is configured with resolve_entities=False (see
+# parse_string), so lxml represents it as a third non-element node kind
+# alongside Comment/PI, with its own .tag sentinel and a `.name` rather
+# than `.text`/`.target`.
+def _is_entity_ref(el: Any) -> bool:
+    return not isinstance(el.tag, str) and el.tag is etree.Entity
+
+
 @dataclass
 class DtfConversionWarning:
     severity: str
@@ -273,6 +283,8 @@ class DitaParser:
                 if child.text:
                     pi["data"] = child.text
                 content.append(pi)
+            elif _is_entity_ref(child):
+                content.append({"type": "entityRef", "name": child.name})
             else:
                 content.append(self._convert_element(child))
             if child.tail and not _is_insignificant_whitespace(child.tail):
@@ -330,6 +342,9 @@ class DitaParser:
                 node["conrefend"] = el.get("conrefend")
             if el.get("conaction"):
                 node["conaction"] = el.get("conaction")
+            content = self._convert_mixed_content(el)
+            if content:
+                node["content"] = content
             return node
 
         node = {
@@ -352,6 +367,37 @@ class DitaParser:
             return "map/topicref" in class_attr
         entry = self.registry.lookup(tag)
         return entry is not None and entry.base_element == "topicref"
+
+    # title/shortdesc/abstract/prolog/related-links/body are each commonly
+    # *specialized* (glossentry's <glossterm>/<glossdef>/<glossBody> are
+    # topic/title, topic/abstract, and topic/body specializations
+    # respectively; troubleshooting's <troublebody> is topic/body too) --
+    # confirmed against real-world content (the Oxygen XML User Guide
+    # corpus) that a literal-tag-name check alone silently drops this onto
+    # the floor, exactly the same failure mode _looks_like_topicref already
+    # guards against for topicref. Token-exact, not substring: classChain
+    # segments are space-separated "module/element" pairs, and a substring
+    # check would wrongly match e.g. "topic/titlealts"/"topic/bodydiv"
+    # against "topic/title"/"topic/body".
+    def _topic_child_role(self, el: Any) -> str | None:
+        tag = etree.QName(el).localname
+        class_attr = el.get("class")
+        if class_attr:
+            tokens = class_attr.split()
+        else:
+            entry = self.registry.lookup(tag)
+            tokens = entry.dita_class.split() if entry else []
+        for base, role in (
+            ("topic/title", "title"),
+            ("topic/shortdesc", "shortdesc"),
+            ("topic/abstract", "abstract"),
+            ("topic/prolog", "prolog"),
+            ("topic/related-links", "related_links"),
+            ("topic/body", "body"),
+        ):
+            if base in tokens:
+                return role
+        return None
 
     # bookmeta (bookmap) is a real map/topicmeta specialization (confirmed:
     # class="- map/topicmeta bookmap/bookmeta "), so it belongs in the same
@@ -408,20 +454,12 @@ class DitaParser:
             if not isinstance(child.tag, str):
                 continue
             child_tag = etree.QName(child).localname
-            if child_tag == "title":
-                node["title"] = self._convert_simple_named(child)
-            elif child_tag == "shortdesc":
-                node["shortdesc"] = self._convert_simple_named(child)
-            elif child_tag == "abstract":
-                node["abstract"] = self._convert_simple_named(child)
-            elif child_tag == "prolog":
-                node["prolog"] = self._convert_simple_named(child)
-            elif child_tag == "related-links":
-                node["related_links"] = self._convert_simple_named(child)
-            elif child_tag in TOPIC_ROOT_NAMES:
+            if child_tag in TOPIC_ROOT_NAMES:
                 nested.append(self._convert_topic(child, *self._class_chain_and_base(child)))
-            elif child_tag == "body" or child_tag.endswith("body"):
-                node["body"] = self._convert_simple_named(child)
+                continue
+            role = self._topic_child_role(child)
+            if role is not None:
+                node[role] = self._convert_simple_named(child)
         if nested:
             node["nested"] = nested
         return node
