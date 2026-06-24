@@ -117,6 +117,30 @@ imply a DTF/grammar format change — see xephon-cms/ROADMAP.md instead.
   points that are valid but have zero concrete members in one particular
   doctype's grammar (e.g. glossgroup's `glossentry-info-types`).
 
+- Real-world corpus verification (2026-06-24): every `.dita`/`.ditamap`
+  file in the DITA 2.0 specification source (781 files), the DITA Style
+  Guide (379 files), and the Oxygen XML User Guide (2821 files) round-
+  trips through Import -> DTF -> Export with no unhandled exception and a
+  stable classChain sequence; `RelaxNgValidator` passes clean (0
+  failures) for the two DITA-1.3-authored corpora (Style Guide, Oxygen
+  User Guide) — not run against the DITA 2.0 spec corpus, since no public
+  DITA 2.0 RELAX NG grammar exists. None of the three corpora are
+  vendored or committed (GPLv2/no-license/OASIS-NOASSERTION respectively)
+  — fetched at verification time only, processed in a temp location, and
+  discarded; rerun this verification by re-cloning
+  github.com/oasis-tcs/dita (`DITA-2.0` branch),
+  github.com/hyperwrite/DITAStyleGuide, and github.com/oxygenxml/userguide
+  if needed again. Found and fixed three real bugs this surfaced: a crash
+  on unresolved entity references (lxml's third non-element node kind,
+  alongside Comment/PI, wasn't handled), silent content loss for
+  specialized title/body-equivalents dispatched by literal tag name
+  instead of classChain (glossentry's glossterm/glossdef/glossBody,
+  troubleshooting's troublebody, etc.), and silent content loss for
+  conref/conkeyref-bearing elements that also carry real fallback child
+  content (every such element was treated as content-free, which alone
+  accounted for the bulk of the Oxygen User Guide corpus's RelaxNG
+  failures before the fix).
+
 ## Known issue (fast-follow, not yet filed as its own task)
 
 - `schema/ditaflow.schema.json` lives outside the `ditaflow` package
