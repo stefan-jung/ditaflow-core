@@ -100,6 +100,91 @@ def test_real_fixtures_round_tripped_through_the_serializer_validate_clean(
     assert result.errors == [], f"{fixture_name}: {result.errors}"
 
 
+def test_tgroup_without_a_cols_attr_still_serializes_to_valid_dita() -> None:
+    """A CALS tgroup's @cols is REQUIRED by the real grammar, but xephon-cms's
+    table editor never writes one (colname/cols/etc. are plain passthrough
+    attrs there, not fields it keeps in sync as columns are added/removed --
+    see tableEditing.ts's own docstring), so every table built through that
+    editor's UI reached this serializer with no `cols` in `attrs` at all.
+    The resulting XML failed RELAX NG validation with a confusing
+    "Expecting element topic, got body" (libxml2 reports the mismatch at the
+    nearest ancestor still being matched, not the actual missing-attribute
+    site several levels down) -- found via a real document exported through
+    the app, not a hypothetical. DtfSerializer must compute @cols from the
+    actual column count (colspecs, matching tableEditing.ts's own
+    "colspecs.length is authoritative once any exist" rule) rather than only
+    passing through whatever `attrs` happens to contain.
+    """
+    document = {
+        "dtf": "ditaflow",
+        "dtfVersion": "1.0.0",
+        "ditaVersion": "1.3",
+        "doctype": "topic",
+        "baseDoctype": "topic",
+        "classChain": ["- topic/topic "],
+        "root": {
+            "type": "topic",
+            "classChain": ["- topic/topic "],
+            "baseType": "topic",
+            "attrs": {"id": "t1"},
+            "title": {"type": "title", "classChain": ["- topic/title "], "content": [{"type": "text", "text": "T"}]},
+            "body": {
+                "type": "body",
+                "classChain": ["- topic/body "],
+                "attrs": {},
+                "content": [
+                    {
+                        "type": "table",
+                        "classChain": ["- topic/table "],
+                        "baseType": "table",
+                        "attrs": {},
+                        "tgroups": [
+                            {
+                                "type": "tgroup",
+                                "classChain": ["- topic/tgroup "],
+                                "baseType": "tgroup",
+                                "attrs": {},  # <-- no "cols" here, same as a freshly-built table
+                                "colspecs": [
+                                    {
+                                        "type": "colspec",
+                                        "classChain": ["- topic/colspec "],
+                                        "attrs": {"_ext": {"colname": "col1"}},
+                                    },
+                                    {
+                                        "type": "colspec",
+                                        "classChain": ["- topic/colspec "],
+                                        "attrs": {"_ext": {"colname": "col2"}},
+                                    },
+                                ],
+                                "tbody": {
+                                    "type": "tbody",
+                                    "classChain": ["- topic/tbody "],
+                                    "attrs": {},
+                                    "rows": [
+                                        {
+                                            "type": "row",
+                                            "classChain": ["- topic/row "],
+                                            "attrs": {},
+                                            "entries": [
+                                                {"type": "entry", "classChain": ["- topic/entry "], "attrs": {}, "content": []},
+                                                {"type": "entry", "classChain": ["- topic/entry "], "attrs": {}, "content": []},
+                                            ],
+                                        }
+                                    ],
+                                },
+                            }
+                        ],
+                    }
+                ],
+            },
+        },
+    }
+    xml = DtfSerializer().serialize(document).xml
+    assert 'cols="2"' in xml
+    result = RelaxNgValidator().validate(xml, "topic")
+    assert result.errors == [], result.errors
+
+
 def test_catches_a_violation_content_model_checker_is_documented_to_miss() -> None:
     """ContentModelChecker is keyed by baseType, not literal element name, so
     it can't tell <ul><step> apart from <ul><li> (step's baseType is "li",

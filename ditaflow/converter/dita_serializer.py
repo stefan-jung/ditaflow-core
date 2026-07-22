@@ -462,7 +462,36 @@ class DtfSerializer:
         for section_name in ("thead", "tbody", "tfoot"):
             if node.get(section_name):
                 el.append(self._table_section_to_element(node[section_name]))
+        # @cols is REQUIRED by the CALS table model (confirmed: the vendored
+        # RELAX NG grammar rejects a tgroup with no cols attribute at all --
+        # "Expecting element topic, got body" is libxml2's confusing way of
+        # reporting that the *table*, several levels down, failed to match,
+        # since RelaxNG error messages point at the nearest ancestor still
+        # being matched, not the actual mismatch site). Always recomputed
+        # here rather than trusting whatever's in `attrs`: xephon-cms's table
+        # editor (tableEditing.ts) never writes a cols value at all when
+        # inserting/deleting columns (colname/cols/etc. are plain passthrough
+        # attrs there, not dedicated fields it keeps in sync), so an
+        # `attrs["cols"]` surviving from import would silently go stale the
+        # moment a column is added or removed -- computing it fresh from the
+        # actual column count is correct in both the "never had one" and
+        # "had a now-stale one" cases. colspecs.length is authoritative once
+        # any exist (tableEditing.ts backfills one colspec per real column);
+        # the first row's own entry count is the fallback for a tgroup with
+        # zero colspecs, which "colspec* thead? tbody" permits.
+        el.set("cols", str(self._tgroup_cols(node)))
         return el
+
+    def _tgroup_cols(self, node: dict[str, Any]) -> int:
+        colspecs = node.get("colspecs", [])
+        if colspecs:
+            return len(colspecs)
+        for section_name in ("thead", "tbody"):
+            section = node.get(section_name)
+            rows = section.get("rows", []) if section else []
+            if rows:
+                return len(rows[0].get("entries", []))
+        return 1
 
     def _leaf_to_element(self, node: dict[str, Any]) -> Any:
         el = etree.Element(node["type"])

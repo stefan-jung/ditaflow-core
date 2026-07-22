@@ -115,21 +115,33 @@ INLINE_BASE_TYPES: frozenset[str] = frozenset({"ph", "xref", "term", "keyword", 
 
 # Block-level content models, keyed by baseType. Only covers the
 # structured editor's in-scope elements (see xephon-cms/ROADMAP.md) --
-# CALS tables, dl, fig, fn, cite, indexterm, and the map family are
-# deliberately excluded, not forgotten (see module docstring).
+# dl, fig, fn, cite, indexterm, and the map family are deliberately
+# excluded, not forgotten (see module docstring). CALS tables ("table",
+# baseType "table") are NOT in that excluded set -- the roadmap's own
+# "CALS + simple tables ... full bidirectional round-trip" entry and
+# KNOWN_BASE_TYPES both already treat it as a modeled, in-scope element;
+# omitting it here (while "simpletable" -- a peer, equally table-shaped
+# element -- was included) was a real gap, not a deliberate one. Confirmed
+# via a real document: every table built through xephon-cms's table editor
+# was flagged as "not allowed inside body" by this checker even once
+# RelaxNgValidator (the authoritative check) validated it clean.
 ALLOWED_CHILDREN: dict[str, frozenset[str]] = {
     "body": frozenset(
-        {"section", "note", "p", "ul", "ol", "sl", "image", "codeblock", "simpletable"}
+        {"section", "note", "p", "ul", "ol", "sl", "image", "codeblock", "simpletable", "table"}
     ),
     "section": frozenset(
-        {"title", "p", "note", "ul", "ol", "sl", "image", "codeblock", "simpletable"}
+        {"title", "p", "note", "ul", "ol", "sl", "image", "codeblock", "simpletable", "table"}
     ),
-    "li": frozenset({"p", "note", "ul", "ol", "sl", "image", "codeblock", "simpletable"}),
+    "li": frozenset(
+        {"p", "note", "ul", "ol", "sl", "image", "codeblock", "simpletable", "table"}
+    ),
     "note": frozenset({"p", "ul", "ol", "sl"}),
     "ul": frozenset({"li"}),
     "ol": frozenset({"li"}),
     "sl": frozenset({"sli"}),
-    "itemgroup": frozenset({"p", "ul", "ol", "sl", "note", "image", "codeblock", "simpletable"}),
+    "itemgroup": frozenset(
+        {"p", "ul", "ol", "sl", "note", "image", "codeblock", "simpletable", "table"}
+    ),
     "simpletable": frozenset({"sthead", "strow"}),
     "sthead": frozenset({"stentry"}),
     "strow": frozenset({"stentry"}),

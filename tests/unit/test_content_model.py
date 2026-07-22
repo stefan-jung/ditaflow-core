@@ -125,13 +125,35 @@ def test_inline_elements_are_always_allowed_in_block_content() -> None:
 
 
 def test_unmodeled_base_types_children_are_not_checked() -> None:
-    # 'table' (CALS) has no ALLOWED_CHILDREN entry -- deliberately
-    # deferred, so its children pass unchecked, not flagged as a gap.
-    # Used as the document root here specifically to isolate that case
-    # from "is 'table' itself allowed as someone's child" (it currently
-    # isn't, body's allowed set doesn't include the deferred CALS table --
-    # a separate, correctly-flagged concern, not what this test is about).
+    # 'table' (CALS) has no ALLOWED_CHILDREN entry of its OWN (i.e. no
+    # rule for what's allowed *inside* a table) -- deliberately deferred,
+    # so its children pass unchecked, not flagged as a gap. Used as the
+    # document root here specifically to isolate that from "is 'table'
+    # itself allowed as someone else's child" (body/section/li/itemgroup's
+    # own allowed-sets DO include "table" -- see test_content_model.py's
+    # sibling test below -- a separate concern from what this test is
+    # about).
     doc = {"root": _node("table", "table", content=[_node("note", "note", content=[])])}
+    assert ContentModelChecker().validate(doc) == []
+
+
+def test_table_is_allowed_directly_inside_body_section_li_and_itemgroup() -> None:
+    # Regression test: a CALS table used to be flagged as "not allowed
+    # inside body" even though RelaxNgValidator (the authoritative check)
+    # accepts it -- body/section/li/itemgroup's ALLOWED_CHILDREN sets had
+    # "simpletable" but not its peer "table", a stale omission from before
+    # CALS table support was finished (see content_model.py's own comment).
+    doc = {
+        "root": _node(
+            "topic",
+            "topic",
+            body=_node(
+                "body",
+                "body",
+                content=[_node("table", "table", content=[])],
+            ),
+        )
+    }
     assert ContentModelChecker().validate(doc) == []
 
 
